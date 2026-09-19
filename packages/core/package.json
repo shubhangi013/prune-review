@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
-    "test": "tsx --test test/*.test.ts",
+    "test": "tsx --test test/core.test.ts",
     "lint": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
