@@ -16,8 +16,6 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - uses: pnpm/action-setup@v4
-        with:
-          version: "9"
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm test

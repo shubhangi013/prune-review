@@ -10,6 +10,7 @@
     "lint": "pnpm -r lint",
     "samples:fetch": "node eval/fetch-samples.mjs",
     "benchmark:mcp": "node eval/run-mcp-ab.mjs",
+    "release:artifacts": "node scripts/build-release-artifacts.mjs",
     "clean": "pnpm -r clean"
   },
   "devDependencies": {

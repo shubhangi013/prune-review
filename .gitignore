@@ -1,5 +1,7 @@
 node_modules/
 dist/
+artifacts/
+.release/
 !packages/action/dist/
 !packages/action/dist/**
 *.log
