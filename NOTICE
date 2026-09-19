@@ -1,0 +1,12 @@
+prune-review
+Copyright 2026 prune-review contributors
+
+This product includes patterns and structural ideas independently derived from
+common code-review triage practices. It has no affiliation with any employer of
+the contributors.
+
+Third-party dependencies retain their own copyrights and licenses:
+- onnxruntime-genai (MIT) — https://github.com/microsoft/onnxruntime-genai
+- phi-3.5-mini-instruct model weights (MIT) — https://huggingface.co/microsoft/Phi-3.5-mini-instruct
+- Jev (TypeSafe AI) — proprietary hosted API; used via public SDK per its terms
+- @octokit/rest (MIT), commander (MIT), @modelcontextprotocol/sdk (MIT)

@@ -1,0 +1,17 @@
+node_modules/
+dist/
+!packages/action/dist/
+!packages/action/dist/**
+*.log
+.DS_Store
+.env
+.env.local
+eval/reports/**
+!eval/reports/.gitkeep
+!eval/reports/mcp-ab-bounded/
+eval/reports/mcp-ab-bounded/**
+!eval/reports/mcp-ab-bounded/aggregate.json
+eval/samples/downloaded/
+eval/workspaces/
+coverage/
+*.tsbuildinfo

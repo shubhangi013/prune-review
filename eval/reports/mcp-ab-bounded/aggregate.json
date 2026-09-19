@@ -1,0 +1,1442 @@
+{
+  "generated_at": "2026-09-18T21:31:54.729Z",
+  "harness": "MCP prepare_review → pinned bounded Copilot CLI reviewer (no tools)",
+  "copilot_cli": "GitHub Copilot CLI 1.0.86.\nRun 'copilot update' to check for updates.",
+  "reviewer_model": "claude-sonnet-5",
+  "jev_model": "jev-1.13.0",
+  "runs": 2,
+  "samples": 11,
+  "measurements": 22,
+  "prices": {
+    "usd_per_ai_credit": 0.01,
+    "jev_input_usd_per_million_tokens": 0.042
+  },
+  "totals": {
+    "baseline_usd": 2.2529,
+    "routed_usd": 2.2263510800000006,
+    "jev_usd": 0.00255108,
+    "baseline_findings": 47,
+    "routed_findings": 50,
+    "saved_usd": 0.02654891999999931,
+    "saved_pct": 1.1784331306315998
+  },
+  "paired": {
+    "median_cost_saved_pct": 3.377090964182905,
+    "p95_cost_saved_pct": 61.79775280898877,
+    "median_hunks_dropped_pct": 0,
+    "p50_baseline_latency_ms": 85546,
+    "p95_baseline_latency_ms": 188232,
+    "p50_routed_latency_ms": 58888.5,
+    "p95_routed_latency_ms": 253943
+  },
+  "rows": [
+    {
+      "repo": "microsoft/vscode",
+      "pr": 336383,
+      "title": "Fix built-in extensions manifest cache never being hit",
+      "patch_sha256": "ea1271385fad23155495bbfad3e70c105c96de7269c46eeb0bb7872fe3dc5a86",
+      "run": 1,
+      "order": [
+        "A",
+        "B"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 15,
+        "kept": 12,
+        "dropped": 3,
+        "llm_only": false,
+        "triage_tokens": 11361,
+        "triage_latency_ms": 6470,
+        "jev_usd": 0.00047716200000000005
+      },
+      "A": {
+        "markdown": "○ Search (grep)                                                                                  20s\n  │ \"class ThrottledDelayer\"\n  └ Timed out\n\n● List repo directory contents (shell)\n  │ Get-ChildItem C:\\Users\\choudharysh\\prune-review | Select-Object -First 20\n  └ 21 lines…\n\n● List directory eval\n  └ 7 files found\n\n## Findings\n\n- **Severity:** medium\n- **File:** src/vs/platform/extensionManagement/common/extensionsScannerService.ts\n- **Line:** `validatePendingCaches()` (around `await Promise.all(pending.map(([cacheFile, input]) => this.validateCache(cacheFile, input)));`)\n- **Issue:** `validatePendingCaches` now fans out to `Promise.all` over every pending cache file/language. Neither `validateCache` nor `validatePendingCaches` catches errors from `super.scanExtensions(input)` (e.g. a broken/unreadable extension on disk, permission error, or JSON parse failure). If any single validation rejects, the whole `Promise.all` rejects and propagates out through `this.cacheValidatorThrottler.trigger(...)`, whose returned promise is not awaited or caught at the call site in `scanExtensions`. This produces an unhandled promise rejection. Previously only one input was validated per throttle tick; now the surface area is multiplied by the number of active scan languages/profiles, making an unhandled rejection materially more likely.\n- **Suggestion:** Wrap each `validateCache` call (or the whole `Promise.all`) in a try/catch that logs via `this.logService` and swallows the error, so one failing language/profile scan cannot crash or spam unhandled rejections and does not prevent the other pending validations from completing cleanly.\n\n- **Severity:** low\n- **File:** src/vs/platform/extensionManagement/node/extensionsManifestCache.ts\n- **Line:** `const cacheHome = await this.fileService.resolve(profile.cacheHome); ... await Promise.all((cacheHome.children ?? []) ... .map(child => this.fileService.del(child.resource)));`\n- **Issue:** All matching cache files are listed once and then deleted in parallel; a `del` failure for one file (e.g. TOCTOU if the file is concurrently removed/rotated by another window/process) rejects that individual promise. `Promise.all` still lets the sibling deletions run to completion, but any per-file error other than `FILE_NOT_FOUND` is only logged generically after all deletions settle, so it's not obvious which specific file failed, and one unexpected error type aborts awaiting further diagnostics for the others.\n- **Suggestion:** Use `Promise.allSettled` and log/inspect the per-file results individually (still filtering out `FILE_NOT_FOUND`), so a single anomalous failure doesn't obscure or short-circuit visibility into the others.\n\n- **Severity:** low\n- **File:** src/vs/platform/extensions/common/extensions.ts\n- **Line:** `isManifestCacheFileName` (`candidate.startsWith(...) && candidate.endsWith('.cache')`)\n- **Issue:** The matcher only checks prefix/suffix, so it will also match any file whose language segment doesn't conform to `SCAN_LANGUAGE_PATTERN` (e.g. a manually placed `extensions.user.anything-weird.cache`). This is likely intended for cleanup purposes, but it means the delete path in `extensionsManifestCache.ts` can silently remove files that were never produced by `getManifestCacheFileName`, which is a broader match than the \"generation\" contract implies.\n- **Suggestion:** If only generated cache files should ever be cleaned up, validate the middle segment against `SCAN_LANGUAGE_PATTERN` (or exact-match the empty/no-language form) in `isManifestCacheFileName` rather than accepting arbitrary content between prefix and suffix. Otherwise, document explicitly that this function is deliberately permissive for cleanup purposes.\n\nLLM_USAGE: prompt=6800 completion=950\n\n",
+        "prompt_sha256": "67c34c281be3378e9c9c0119bf69abb4ac9a4fc89331b0e6b21e07e1a18dffc7",
+        "prompt_chars": 24411,
+        "prompt_tokens": 139200,
+        "completion_tokens": 9600,
+        "ai_credits": 20.87,
+        "usd": 0.20870000000000002,
+        "latency_ms": 188232,
+        "findings": {
+          "total": 3,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 2
+        }
+      },
+      "B": {
+        "markdown": "✗ Fetching web content https://github.com/microsoft/vscode/pull/336383/files · url: \"https://github…\n  └ Permission denied and could not request permission from user\n\n✗ Fetching web content https://raw.githubusercontent.com/microsoft/vscode/main/src/vs/platform/exte…\n  └ Permission denied and could not request permission from user\n\n## Findings\n\n- **Severity:** medium\n- **File:** src/vs/platform/extensionManagement/common/extensionsScannerService.ts\n- **Line:** 1002-1006 (`validatePendingCaches`)\n- **Issue:** `validatePendingCaches` snapshots and clears `pendingValidations`, then runs all validations with `Promise.all`. The call site (`this.cacheValidatorThrottler.trigger(() => this.validatePendingCaches())`) does not await or catch the returned promise. Previously a validation failure affected only one input; now a single `validateCache` rejection (e.g. I/O error reading/writing one language's cache) rejects the aggregate promise for the whole batch, producing an unhandled promise rejection instead of being isolated per cache file, even though the other validations in the batch still execute to completion independently.\n- **Suggestion:** Use `Promise.allSettled` (or wrap each `validateCache` call in its own try/catch that logs the error) so one file's failure doesn't produce an unhandled rejection for the batch.\n\n- **Severity:** medium\n- **File:** src/vs/platform/extensionManagement/node/extensionsManifestCache.ts\n- **Line:** 55-62 (`deleteUserCacheFiles`)\n- **Issue:** The rewrite replaces a single known-name delete with `resolve(cacheHome)` → filter → `del()`. This introduces a TOCTOU window: if a concurrent scan writes a new per-language cache file for the profile after `resolve()` returns but before/while the deletions run, that new file is not part of the enumerated set and will not be deleted. Since this method exists specifically to invalidate all cached manifests on install/uninstall, a stale (now-invalid) per-language cache can survive the invalidation and be served on the next scan for that language.\n- **Suggestion:** Re-resolve and re-delete in a loop until no matching cache files remain, or invalidate via a generation/version marker rather than enumerate-then-delete, to close the race window.\n\n- **Severity:** low\n- **File:** src/vs/platform/extensions/common/extensions.ts\n- **Line:** 41-46 (`isManifestCacheFileName`)\n- **Issue:** Unlike `getManifestCacheFileName`, which validates the language segment against `SCAN_LANGUAGE_PATTERN`, `isManifestCacheFileName` only checks a `prefix.` / `.cache` wrapper and accepts any content in between. This asymmetry means the delete-matching logic is broader than the generation logic — any file coincidentally named like `extensions.user.<anything>.cache` in the cache directory is treated as a manifest cache file and removed during invalidation, even if it was never produced by `getManifestCacheFileName`.\n- **Suggestion:** Reuse `SCAN_LANGUAGE_PATTERN` (or an equivalent full-name regex) in `isManifestCacheFileName` so only names that could actually have been produced by `getManifestCacheFileName` are matched.\n\n- **Severity:** low\n- **File:** src/vs/platform/extensionManagement/common/extensionsScannerService.ts\n- **Line:** 946 (`pendingValidations = new ResourceMap<ExtensionScannerInput>()`)\n- **Issue:** The `ResourceMap` is constructed without a comparison-key function (e.g. via `uriIdentityService.extUri.getComparisonKey`), unlike other URI-keyed maps in the codebase that account for case-insensitive file systems. If `cacheFile` URIs for the same logical cache ever differ only in case (e.g. differing profile/cacheHome casing across code paths), they would be treated as distinct keys, potentially causing duplicate/missed dedup entries in `pendingValidations`.\n- **Suggestion:** Construct the map with `new ResourceMap<ExtensionScannerInput>(uri => this.uriIdentityService.extUri.getComparisonKey(uri))` for consistency with other resource-keyed collections in the file.\n\nLLM_USAGE: prompt=8200 completion=1450\n\n",
+        "prompt_sha256": "3ecd50fa9cae1c83b3e277277bc135c9398afadec58c1f875377e477d2e4d3e8",
+        "prompt_chars": 20770,
+        "prompt_tokens": 94500,
+        "completion_tokens": 12700,
+        "ai_credits": 18.75,
+        "usd": 0.1875,
+        "latency_ms": 188832,
+        "findings": {
+          "total": 4,
+          "critical": 0,
+          "high": 0,
+          "medium": 2,
+          "low": 2
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.20870000000000002,
+        "routed_usd": 0.187977162,
+        "saved_usd": 0.02072283800000002,
+        "saved_pct": 9.929486344034506,
+        "end_to_end_A_ms": 188232,
+        "end_to_end_B_ms": 195302
+      }
+    },
+    {
+      "repo": "microsoft/vscode",
+      "pr": 336383,
+      "title": "Fix built-in extensions manifest cache never being hit",
+      "patch_sha256": "ea1271385fad23155495bbfad3e70c105c96de7269c46eeb0bb7872fe3dc5a86",
+      "run": 2,
+      "order": [
+        "B",
+        "A"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 15,
+        "kept": 12,
+        "dropped": 3,
+        "llm_only": false,
+        "triage_tokens": 0,
+        "triage_latency_ms": 0,
+        "jev_usd": 0
+      },
+      "A": {
+        "markdown": "● List directory .\n  └ 16 files found\n\n## Findings\n\n- **Severity:** medium\n- **File:** src/vs/platform/extensionManagement/common/extensionsScannerService.ts\n- **Line:** `validatePendingCaches` / `validateCache` (~1002-1034)\n- **Issue:** `validatePendingCaches` runs `Promise.all(pending.map(([cacheFile, input]) => this.validateCache(cacheFile, input)))`. The call site, `this.cacheValidatorThrottler.trigger(() => this.validatePendingCaches())` in `scanExtensions`, is fire-and-forget (no `await`/`.catch`). If validating one language's cache throws (e.g. a transient file error or an error deep in `super.scanExtensions`), `Promise.all` rejects, producing an unhandled promise rejection, and this now happens for every batch that contains N languages instead of just one input, increasing exposure versus the prior single-`input` design.\n- **Suggestion:** Wrap each `validateCache` call in its own try/catch (log and continue) inside `validatePendingCaches`, or use `Promise.allSettled` and log failures per entry, so one language's failure doesn't affect others and doesn't surface as an unhandled rejection.\n\n- **Severity:** low\n- **File:** src/vs/platform/extensionManagement/common/extensionsScannerService.ts\n- **Line:** `private readonly pendingValidations = new ResourceMap<ExtensionScannerInput>();` (~946)\n- **Issue:** `ResourceMap` is constructed with the default key function (URI.toString()-based), not the workspace/profile-aware `uriIdentityService.extUri`. If `cacheFile` URIs for the same logical file ever differ in casing (e.g. platform-dependent path casing on case-insensitive file systems), two entries could be treated as distinct pending validations instead of merged, causing redundant scans. Low likelihood since `getCacheFile` builds the URI deterministically via `uriIdentityService.extUri.joinPath`, but it's inconsistent with how the rest of the class already relies on `uriIdentityService.extUri` for correctness.\n- **Suggestion:** Construct the map with an extUri-aware key, e.g. `new ResourceMap<ExtensionScannerInput>(uri => this.uriIdentityService.extUri.getComparisonKey(uri))`, for consistency and correctness on case-insensitive file systems.\n\n- **Severity:** low\n- **File:** src/vs/platform/extensionManagement/node/extensionsManifestCache.ts\n- **Line:** `deleteUserCacheFiles` (~53-60)\n- **Issue:** User cache files are now cleaned up per-language on install/uninstall (via `isManifestCacheFileName`), but there's no equivalent language-pruning for builtin/system cache files, so a user cache directory can accumulate one file per language ever used with no explicit garbage collection path shown in this diff (beyond whatever global cache-clear may run on product version bump). This is a minor unbounded-growth concern if a machine is used with many different `--locale` values over time.\n- **Suggestion:** Confirm/verify that product-version cache invalidation (elsewhere) clears the whole cache directory including all per-language files; otherwise consider pruning stale language cache files (e.g. keep only the most recently used language) during scan or cache-write.\n\nLLM_USAGE: prompt=8600 completion=1400\n\n",
+        "prompt_sha256": "67c34c281be3378e9c9c0119bf69abb4ac9a4fc89331b0e6b21e07e1a18dffc7",
+        "prompt_chars": 24411,
+        "prompt_tokens": 66700,
+        "completion_tokens": 8900,
+        "ai_credits": 14.93,
+        "usd": 0.1493,
+        "latency_ms": 120658,
+        "findings": {
+          "total": 3,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 2
+        }
+      },
+      "B": {
+        "markdown": "✗ Fetching web content https://raw.githubusercontent.com/microsoft/vscode/main/src/vs/platform/exte…\n  └ Permission denied and could not request permission from user\n\n● List directory .\n  └ 16 files found\n\n## Findings\n\n- **Severity:** medium\n- **File:** src/vs/platform/extensionManagement/common/extensionsScannerService.ts\n- **Line:** `validatePendingCaches` (Promise.all(pending.map(...)))\n- **Issue:** `validatePendingCaches` is invoked fire-and-forget from `cacheValidatorThrottler.trigger(() => this.validatePendingCaches())`, and nothing awaits or catches its result. Wrapping the per-cache validations in `Promise.all` means that if any single `validateCache` call rejects (e.g. `readExtensionCache`/`scanExtensions` throws for one language/profile), the aggregate promise rejects. Since the throttler's callback result isn't handled, this surfaces as an unhandled promise rejection, and a failure validating one language's cache can mask/interfere with reporting failures for the others.\n- **Suggestion:** Catch/log errors per-entry (e.g. `pending.map(([f, i]) => this.validateCache(f, i).catch(err => this.logService.error(err)))`) so one failing validation can't produce an unhandled rejection or short-circuit awareness of the rest.\n\n- **Severity:** low\n- **File:** src/vs/platform/extensions/common/extensions.ts\n- **Line:** `isManifestCacheFileName` (`candidate.startsWith(...) && candidate.endsWith('.cache')`)\n- **Issue:** The predicate only checks a prefix/suffix match and does not validate that the middle segment is an actual (or absent) language token. Combined with `deleteUserCacheFiles`, which deletes every file in `cacheHome` matching this predicate, any unrelated file that happens to be named like `extensions.user.<anything>.cache` in the same directory would be silently deleted, not just the manifest caches this code creates.\n- **Suggestion:** Tighten the check to require the middle segment be empty or match `SCAN_LANGUAGE_PATTERN` (mirroring `getManifestCacheFileName`'s generation logic) before treating a file as a cache file to delete.\n\n- **Severity:** low\n- **File:** src/vs/platform/extensions/common/extensions.ts\n- **Line:** `getManifestCacheFileName` fallback behavior for malformed/long language values\n- **Issue:** The comment asserts that extensions/language values which fail `SCAN_LANGUAGE_PATTERN` are safe to collapse onto the shared unsuffixed cache file because \"`ExtensionScannerInput` re-checks the language of an entry before it is used,\" but that re-check isn't part of this diff and isn't verified here. If that assumption doesn't hold in all call paths, two different malformed-language scans could silently read/overwrite each other's cache entries.\n- **Suggestion:** Confirm (or add a test) that `ExtensionScannerInput.equals`/consumers always reject a cache hit whose recorded `language` differs from the requested one, independent of which file it was read from, so the fallback-file sharing can't produce stale results.\n\n- **Severity:** low\n- **File:** src/vs/platform/extensionManagement/node/extensionsManifestCache.ts\n- **Line:** `deleteUserCacheFiles` (`fileService.resolve(profile.cacheHome)` + `Promise.all(children...del)`)\n- **Issue:** This replaces a single, well-known-path deletion with a directory listing plus per-file delete. If `resolve` succeeds but an individual `del` fails for a reason other than `FILE_NOT_FOUND` (e.g. permission error on one file), the surrounding try/catch only logs the first rejection from `Promise.all`; other deletions in flight are not explicitly awaited-for-completion/reported, so cache invalidation could partially fail without clear indication which file(s) survived.\n- **Suggestion:** Use `Promise.allSettled` and log all failures individually, so a partial failure to invalidate one cache file doesn't get lost in an aggregate rejection.\n\nLLM_USAGE: prompt=5200 completion=950\n\n",
+        "prompt_sha256": "3ecd50fa9cae1c83b3e277277bc135c9398afadec58c1f875377e477d2e4d3e8",
+        "prompt_chars": 20770,
+        "prompt_tokens": 99400,
+        "completion_tokens": 6500,
+        "ai_credits": 13.51,
+        "usd": 0.1351,
+        "latency_ms": 103671,
+        "findings": {
+          "total": 4,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 3
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.1493,
+        "routed_usd": 0.1351,
+        "saved_usd": 0.01419999999999999,
+        "saved_pct": 9.51105157401205,
+        "end_to_end_A_ms": 120658,
+        "end_to_end_B_ms": 103671
+      }
+    },
+    {
+      "repo": "facebook/react",
+      "pr": 37645,
+      "title": "[compiler] Bail on use of arguments object",
+      "patch_sha256": "2155b6c03a715459893ced6c058444328e16a186ed1b989aa2a53d619fe5eba0",
+      "run": 1,
+      "order": [
+        "A",
+        "B"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 15,
+        "kept": 8,
+        "dropped": 7,
+        "llm_only": false,
+        "triage_tokens": 7517,
+        "triage_latency_ms": 4720,
+        "jev_usd": 0.000315714
+      },
+      "A": {
+        "markdown": "● List directory .\n  └ 16 files found\n\n## Findings\n\n- **Severity:** low\n- **File:** compiler/packages/babel-plugin-react-compiler/src/HIR/BuildHIR.ts\n- **Line:** 3728 (`} else if (binding.kind === 'Global' && binding.name === 'arguments') {`)\n- **Issue:** The TS implementation gates the new \"arguments\" check behind an `else if`, so it only runs when the preceding (unseen) global-binding condition is false. The Rust port in `build_hir.rs` (line ~409, `if name == \"arguments\" {`) instead uses an independent `if`, evaluated regardless of the prior branch's outcome. If the earlier TS condition can ever be true for a binding named `arguments` without also being a hard/fatal error, the specific \"Implicit 'arguments' is not supported\" diagnostic would be silently skipped in the JS/TS compiler while still firing in the Rust compiler, producing parity drift between the two front ends for identical source.\n- **Suggestion:** Confirm whether the prior branch's condition can overlap with `binding.name === 'arguments'`; if so, restructure both implementations identically (either both as independent `if`s or both as `else if`s) to guarantee consistent diagnostics across the Rust and TS compiler backends.\n\n- **Severity:** low\n- **File:** compiler/packages/babel-plugin-react-compiler/src/__tests__/fixtures/compiler/error.unsupported-implicit-arguments.expect.md\n- **Line:** end of file (missing trailing newline, \"\\ No newline at end of file\")\n- **Issue:** Minor style/consistency nit — new fixture snapshot lacks a trailing newline, inconsistent with most other `.expect.md` fixtures in the repo.\n- **Suggestion:** Regenerate the snapshot with the standard fixture tooling to ensure trailing newline consistency.\n\nNo correctness, security, or concurrency issues were found in the core bailout logic; the added `arguments` detection correctly targets only unresolved/global `arguments` references (leaving user-shadowed `arguments` parameters unaffected), and the new bailout fixture confirms graceful fallback (`@panicThreshold:\"none\"`) preserves rendering behavior rather than hard-crashing.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "4b4c6279f983645758603b11a19e28df1a8fe8bbed98e84035dc050aaf7f6d8d",
+        "prompt_chars": 13528,
+        "prompt_tokens": 56100,
+        "completion_tokens": 4800,
+        "ai_credits": 9.17,
+        "usd": 0.0917,
+        "latency_ms": 86012,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 2
+        }
+      },
+      "B": {
+        "markdown": "## Findings\n\n- **Severity:** medium\n- **File:** compiler/packages/babel-plugin-react-compiler/src/HIR/BuildHIR.ts\n- **Line:** 3728\n- **Issue:** The bailout only triggers when `binding.kind === 'Global'`. This only catches `arguments` used in the outermost (non-nested, non-arrow) function context where it resolves as a global lookup. If `arguments` is referenced inside a nested arrow function that itself is nested inside a named/local scope where `arguments` has been shadowed by a local binding (e.g., a parameter or variable named `arguments`), the check is skipped, but more importantly the check relies entirely on how the binding resolver classifies `arguments`—if resolution differs (e.g., it resolves as an `Identifier`/non-Global binding in some code paths, such as inside class methods or certain nested closures), the arguments object could still slip through undetected and produce incorrect/silent miscompilation instead of a clear bailout error.\n- **Suggestion:** Add a defensive check (or test fixture) for `arguments` referenced in deeply nested arrow functions and inside object/class methods to confirm the `Global` binding classification holds in all these cases; consider matching on the identifier name at the AST level as a fallback in addition to the binding kind.\n\n- **Severity:** low\n- **File:** compiler/crates/react_compiler_lowering/src/build_hir.rs\n- **Line:** 409-419\n- **Issue:** The Rust port duplicates the same string literals for reason/description as the TS version. Any future wording change must be kept in sync manually across both implementations; there's no shared constant, so drift risk exists.\n- **Suggestion:** Extract the error strings into a shared constant/resource used by both the Rust and TS lowering paths, or add a comment cross-referencing the two locations to reduce drift.\n\n- **Severity:** low\n- **File:** compiler/packages/babel-plugin-react-compiler/src/__tests__/fixtures/compiler/error.unsupported-implicit-arguments.expect.md\n- **Line:** 1-35\n- **Issue:** The expected error output references `error.unsupported-implicit-arguments.ts:2:15`, but the actual fixture file is `.js` (see the paired `error.unsupported-implicit-arguments.js`). This filename/extension mismatch in the golden output could indicate a copy-paste artifact from another fixture and may cause confusion or a subtly wrong snapshot if the test harness ever checks the reported filename.\n- **Suggestion:** Verify the test snapshot generator's actual output; if `.ts` is unintended, regenerate/update the `.expect.md` to reference `error.unsupported-implicit-arguments.js`.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "8903c0cb3440509d7f8131bc1e4bc745e79820aef6986c3d45e7d37b7a4406da",
+        "prompt_chars": 7400,
+        "prompt_tokens": 24800,
+        "completion_tokens": 939,
+        "ai_credits": 3.91,
+        "usd": 0.0391,
+        "latency_ms": 26754,
+        "findings": {
+          "total": 3,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 2
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.0917,
+        "routed_usd": 0.039415714000000004,
+        "saved_usd": 0.052284286,
+        "saved_pct": 57.01666957470011,
+        "end_to_end_A_ms": 86012,
+        "end_to_end_B_ms": 31474
+      }
+    },
+    {
+      "repo": "facebook/react",
+      "pr": 37645,
+      "title": "[compiler] Bail on use of arguments object",
+      "patch_sha256": "2155b6c03a715459893ced6c058444328e16a186ed1b989aa2a53d619fe5eba0",
+      "run": 2,
+      "order": [
+        "B",
+        "A"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 15,
+        "kept": 8,
+        "dropped": 7,
+        "llm_only": false,
+        "triage_tokens": 0,
+        "triage_latency_ms": 0,
+        "jev_usd": 0
+      },
+      "A": {
+        "markdown": "✗ Fetching web content https://github.com/facebook/react/pull/37645/files · url: \"https://github.co…\n  └ Permission denied and could not request permission from user\n\n✗ Fetching web content https://raw.githubusercontent.com/facebook/react/main/compiler/crates/react_…\n  └ Permission denied and could not request permission from user\n\n## Findings\n\n- **Severity:** high\n- **File:** compiler/crates/react_compiler_lowering/src/build_hir.rs\n- **Line:** 409-419 (`if name == \"arguments\" { ... }`)\n- **Issue:** The Rust check fires purely on the identifier's textual name (`name == \"arguments\"`), with no visible guard restricting it to unresolved/global bindings. The TypeScript counterpart explicitly requires `binding.kind === 'Global'` (BuildHIR.ts line 3728) before emitting the error. In non-strict JS, `arguments` can legally be used as a normal local variable or parameter name that shadows the implicit arguments object; without an equivalent binding-kind guard, the Rust lowering path risks incorrectly bailing on code where `arguments` is just a user-defined local, diverging from the JS/TS implementation's more precise semantics.\n- **Suggestion:** Confirm/add a check that this branch only triggers when `binding` resolves to an implicit/global \"arguments\" (i.e., no local declaration for that name), mirroring the `Global` kind check used in `BuildHIR.ts`, to keep both lowering paths consistent and avoid false-positive bailouts.\n\n- **Severity:** medium\n- **File:** compiler/packages/babel-plugin-react-compiler/src/__tests__/fixtures/compiler/capture-param-mutate.js and reassigned-phi-in-returned-function-expression.js\n- **Line:** full file diffs (e.g. capture-param-mutate.js:1-27, reassigned-phi-in-returned-function-expression.js:1-8)\n- **Issue:** Both previously-passing fixtures used the implicit `arguments` object directly and relied on an existing pass to desugar it into rest parameters. Rather than preserving those original inputs and adding a new test proving they still compile (given the new bailout), the PR rewrites the *source* fixtures to explicit `...args`, sidestepping the new \"unsupported arguments\" error path. This risks silently regressing previously-supported patterns (implicit `arguments` referenced within a function's own body, and within an arrow function closing over an outer function's `arguments`) without any regression test confirming they still compile instead of bailing.\n- **Suggestion:** Keep the original implicit-`arguments` fixtures (or add new ones) to verify the pre-existing desugaring pass still transparently handles these cases and does not trip the new bailout; only rewrite fixtures if the intent is genuinely to test the new rest-parameter idiom.\n\n- **Severity:** low\n- **File:** compiler/packages/babel-plugin-react-compiler/src/__tests__/fixtures/compiler/error.unsupported-implicit-arguments.expect.md\n- **Line:** 21 (`error.unsupported-implicit-arguments.ts:2:15`)\n- **Issue:** The generated error snapshot references `error.unsupported-implicit-arguments.ts`, but the actual fixture source file is `error.unsupported-implicit-arguments.js`. This extension mismatch suggests either a fixture-generation bug or a copy/paste artifact, and could confuse future debugging of error locations.\n- **Suggestion:** Regenerate/verify the fixture so the reported file extension matches the actual `.js` source file.\n\n- **Severity:** low\n- **File:** compiler/packages/babel-plugin-react-compiler/src/__tests__/fixtures/compiler/error.unsupported-implicit-arguments.expect.md and implicit-arguments-bailout-preserves-renders.expect.md\n- **Line:** end of file (`\\ No newline at end of file`)\n- **Issue:** Both new `.expect.md` fixtures lack a trailing newline, inconsistent with the rest of the repo's generated fixtures.\n- **Suggestion:** Regenerate fixtures with the standard fixture-generation tooling to restore trailing newline consistency.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "4b4c6279f983645758603b11a19e28df1a8fe8bbed98e84035dc050aaf7f6d8d",
+        "prompt_chars": 13528,
+        "prompt_tokens": 85900,
+        "completion_tokens": 5500,
+        "ai_credits": 10.68,
+        "usd": 0.1068,
+        "latency_ms": 94982,
+        "findings": {
+          "total": 4,
+          "critical": 0,
+          "high": 1,
+          "medium": 1,
+          "low": 2
+        }
+      },
+      "B": {
+        "markdown": "## Findings\n\n- **Severity:** medium\n- **File:** compiler/packages/babel-plugin-react-compiler/src/HIR/BuildHIR.ts\n- **Line:** 3728-3736\n- **Issue:** The new check only fires when `binding.kind === 'Global'`. If a user-defined variable named `arguments` shadows the implicit object (e.g. a function parameter or local variable literally named `arguments`), the binding would resolve as `Local`/non-global and this bailout would be skipped — which is actually correct in that case. However, the reverse risk is real: nested arrow functions inherit outer `arguments` lexically, so an arrow function referencing `arguments` from an enclosing regular function may not resolve as `Global` in all binding-resolution paths, potentially allowing the reference to silently compile without the intended bailout depending on how scope binding is computed upstream. Since this is the crux of the bailout's correctness, the binding-kind assumption should be verified against nested-arrow-function and class-method contexts.\n- **Suggestion:** Add fixture coverage for `arguments` referenced inside a nested arrow function (lexical `arguments` inheritance) and inside class methods/computed member expressions to confirm the `Global` binding assumption holds in all these cases; if not, broaden the check beyond `binding.kind === 'Global'`.\n\n- **Severity:** low\n- **File:** compiler/crates/react_compiler_lowering/src/build_hir.rs\n- **Line:** 409-419\n- **Issue:** The Rust and TypeScript implementations diverge slightly in structure — the Rust version checks `name == \"arguments\"` seemingly unconditionally within the existing block (context truncated), while the TS version explicitly gates on `binding.kind === 'Global'`. Without seeing the surrounding `binding` match arm in the Rust file, it's unclear whether the Rust check is similarly scoped to only global/unresolved bindings, risking false positives if a local variable is named `arguments`.\n- **Suggestion:** Confirm the Rust `name == \"arguments\"` check is scoped only to unresolved/global bindings (mirroring the TS logic), not to any identifier lexically named `arguments`, and add a test fixture with a local variable/parameter named `arguments` to verify no false-positive bailout occurs.\n\n- **Severity:** low\n- **File:** compiler/packages/babel-plugin-react-compiler/src/__tests__/fixtures/compiler/implicit-arguments-bailout-preserves-renders.js\n- **Line:** 1-11\n- **Issue:** This fixture uses `@panicThreshold:\"none\"` and `params: []` while the function body accesses `arguments[0].value`, presumably to test that the bailout produces a graceful non-compiled fallback rather than a crash. However, there's no accompanying `.expect.md` file in the diff for this fixture, so it's not possible to verify what the actual expected output/behavior is, or whether the test asserts the runtime correctness of the preserved (uncompiled) render path.\n- **Suggestion:** Verify the corresponding `.expect.md` snapshot exists and is committed alongside this fixture, confirming the bailout path executes correctly across `sequentialRenders` without compiler-related runtime errors.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "8903c0cb3440509d7f8131bc1e4bc745e79820aef6986c3d45e7d37b7a4406da",
+        "prompt_chars": 7400,
+        "prompt_tokens": 24800,
+        "completion_tokens": 1100,
+        "ai_credits": 4.08,
+        "usd": 0.0408,
+        "latency_ms": 28920,
+        "findings": {
+          "total": 3,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 2
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.1068,
+        "routed_usd": 0.0408,
+        "saved_usd": 0.066,
+        "saved_pct": 61.79775280898877,
+        "end_to_end_A_ms": 94982,
+        "end_to_end_B_ms": 28920
+      }
+    },
+    {
+      "repo": "vercel/next.js",
+      "pr": 97946,
+      "title": "fix: suppress missing package manager errors in next info",
+      "patch_sha256": "1dfcee6ef0005a385feaafb604994f0e3790d985ddbc0fc6ffe04d42074e0903",
+      "run": 1,
+      "order": [
+        "A",
+        "B"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 3,
+        "kept": 3,
+        "dropped": 0,
+        "llm_only": true,
+        "triage_tokens": 0,
+        "triage_latency_ms": 0,
+        "jev_usd": 0
+      },
+      "A": {
+        "markdown": "## Findings\n\n- **Severity:** low\n- **File:** `packages/next/src/cli/next-info.ts`\n- **Line:** `execSync(\\`${binaryName} --version\\`, ...)`\n- **Issue:** The fallback path still uses `execSync` with string interpolation of `binaryName` through a shell, which is a command-injection vector if `binaryName` is ever attacker-influenced (currently it's hardcoded elsewhere, but this pattern is fragile and unchanged by this PR despite touching this exact line). Suppressing stdio only hides output, it does not address the underlying shell-interpolation risk.\n- **Suggestion:** Replace the `execSync` shell-string call with `execFileSync(binaryName, ['--version'], { stdio: 'pipe' })` (same as the primary path) to avoid shell interpretation entirely, rather than only silencing errors.\n\n- **Severity:** low\n- **File:** `packages/next/src/cli/next-info.ts`\n- **Line:** `.toString().trim()` after `execFileSync`/`execSync` with `stdio: 'pipe'`\n- **Issue:** With `stdio: 'pipe'`, `execFileSync`/`execSync` return a `Buffer` only when stdout is captured; this is fine, but there's no explicit encoding set, so `.toString()` relies on default UTF-8 decoding — a minor latent issue unrelated to this PR's fix but worth noting since the call signature changed here.\n- **Suggestion:** Optionally pass `{ encoding: 'utf8', stdio: 'pipe' }` for clarity/consistency, though not required for correctness.\n\n- **Severity:** low\n- **File:** `test/e2e/cli/cli.test.ts`\n- **Line:** `binDir` creation via `fs.mkdtemp` inside `next.testDir` without cleanup on early failure between write and rm in unusual cases\n- **Issue:** The `try/finally` correctly removes `binDir`, but if `next.runCommand` throws before the `finally`, the temp bin directory is still cleaned up correctly since it's within the `try`. This is fine; no actual bug — flagged only because the PATH env override could affect other parallel tests if `next.runCommand` shares process state across concurrent test runs (unlikely per test harness design, but worth confirming test isolation).\n- **Suggestion:** Confirm `next.runCommand` spawns an isolated child process per test (likely does) so the PATH mutation doesn't leak into concurrently running tests; no code change needed if isolation is already guaranteed.\n\nNo critical, high, or medium severity issues found. The core fix (adding `stdio: 'pipe'` to suppress noisy child-process error output while still catching failures) is correct and preserves existing fallback behavior (`'N/A'`).\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "e199787303516c96bde49cbd0c37b6ae227a9d6401cebef36a3a633690390221",
+        "prompt_chars": 4024,
+        "prompt_tokens": 23400,
+        "completion_tokens": 960,
+        "ai_credits": 3.57,
+        "usd": 0.0357,
+        "latency_ms": 26765,
+        "findings": {
+          "total": 3,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 3
+        }
+      },
+      "B": {
+        "markdown": "## Findings\n\n- **Severity:** low\n- **File:** packages/next/src/cli/next-info.ts\n- **Line:** 81\n- **Issue:** `execSync` with a template string (`${binaryName} --version`) still shells out via `/bin/sh` or `cmd.exe`. If `binaryName` is ever attacker-influenced or contains shell metacharacters, this remains a shell-injection vector. Currently `binaryName` is a hardcoded literal at call sites, so risk is latent, but the `execFileSync` fallback pattern (safer, arg-array based) is inconsistent with the `execSync` fallback still using string interpolation.\n- **Suggestion:** Replace the `execSync` fallback with `execFileSync(binaryName, ['--version'], { stdio: 'pipe' })` as well (drop the shell-string variant entirely), removing both the injection surface and the duplication.\n\n- **Severity:** low\n- **File:** packages/next/src/cli/next-info.ts\n- **Line:** 79-90\n- **Issue:** The `stdio: 'pipe'` fix suppresses inherited stderr output to the console, which is the intended fix for leaking package-manager errors, but it also silently swallows any stdout output that might exceed default buffer size on very verbose `--version` outputs (unlikely but unbounded growth is not explicitly capped via `maxBuffer`), potentially throwing a different, less informative error that gets caught anyway and reported as `'N/A'`. This is benign given the catch-all, so no user-facing behavior changes, but worth a comment noting the intentional suppression.\n- **Suggestion:** Optional: add a brief inline comment explaining `stdio: 'pipe'` intentionally prevents child stderr/stdout from leaking to the parent process's console.\n\n- **Severity:** low\n- **File:** test/e2e/cli/cli.test.ts\n- **Line:** 1155-1157\n- **Issue:** The `pathKey` lookup falls back to `'PATH'` if no case-insensitive match is found in `process.env`. On Windows, `process.env` access is case-insensitive but `Object.keys` still returns the actual stored casing (often `Path`), so this is fine, but if `PATH` is entirely unset in the test environment (unlikely but possible in constrained CI), the constructed env object won't include existing PATH entries beyond `process.env[pathKey] ?? ''`, silently degrading to only `binDir`, which could make unrelated binaries invoked by `next info` unresolvable and produce a flaky test rather than a clear failure.\n- **Suggestion:** No action required for typical CI; consider asserting `pathKey` exists before proceeding, or logging when falling back to the `'PATH'` default, to make a future flaky failure easier to diagnose.\n\nNo correctness, concurrency, or resource-management defects were found in the core fix; the change is a narrowly-scoped, well-tested improvement.\n\nLLM_USAGE: prompt=1084 completion=612\n\n",
+        "prompt_sha256": "e199787303516c96bde49cbd0c37b6ae227a9d6401cebef36a3a633690390221",
+        "prompt_chars": 4024,
+        "prompt_tokens": 23400,
+        "completion_tokens": 1000,
+        "ai_credits": 3.62,
+        "usd": 0.0362,
+        "latency_ms": 28331,
+        "findings": {
+          "total": 3,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 3
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.0357,
+        "routed_usd": 0.0362,
+        "saved_usd": -0.0005000000000000004,
+        "saved_pct": -1.400560224089637,
+        "end_to_end_A_ms": 26765,
+        "end_to_end_B_ms": 28331
+      }
+    },
+    {
+      "repo": "vercel/next.js",
+      "pr": 97946,
+      "title": "fix: suppress missing package manager errors in next info",
+      "patch_sha256": "1dfcee6ef0005a385feaafb604994f0e3790d985ddbc0fc6ffe04d42074e0903",
+      "run": 2,
+      "order": [
+        "B",
+        "A"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 3,
+        "kept": 3,
+        "dropped": 0,
+        "llm_only": true,
+        "triage_tokens": 0,
+        "triage_latency_ms": 0,
+        "jev_usd": 0
+      },
+      "A": {
+        "markdown": "## Findings\n\n- **Severity:** low\n- **File:** packages/next/src/cli/next-info.ts\n- **Line:** 78-92\n- **Issue:** `execFileSync`/`execSync` still inherit `stdin` by default even with `stdio: 'pipe'` for stdout/stderr passed as a plain string option — actually `{ stdio: 'pipe' }` pipes all three fds, which is fine and prevents inherited stdin too, so no real issue there. However, the fix only silences stdout/stderr leakage; if a malicious/misbehaving binary named `binaryName` reads from stdin expecting interactive input, `execFileSync` will block waiting for input from the pipe (EOF immediately since nothing is written), which is a minor behavior change from previous inherited stdio but not a regression risk in practice.\n- **Suggestion:** No action needed; this is a non-issue in practice, but consider explicitly documenting `stdio: ['ignore', 'pipe', 'pipe']` for clarity.\n\n- **Severity:** medium\n- **File:** packages/next/src/cli/next-info.ts\n- **Line:** 84-88\n- **Issue:** `execSync` builds a shell command via string interpolation (`` `${binaryName} --version}` ``). `binaryName` is a hardcoded caller-controlled string in this codebase today, but this fallback path still uses shell interpretation (`execSync` with a string always spawns via shell), so if `binaryName` is ever sourced from user/environment-influenced input in the future, this becomes a command-injection vector. The `stdio: 'pipe'` change only suppresses output, it doesn't address this pre-existing shell-injection surface.\n- **Suggestion:** Prefer `execFileSync(binaryName, ['--version'], { stdio: 'pipe' })` for the fallback too (avoiding shell interpolation entirely), or if `execSync` must remain, validate/allowlist `binaryName` before interpolating.\n\n- **Severity:** low\n- **File:** test/e2e/cli/cli.test.ts\n- **Line:** 1155-1157\n- **Issue:** The `pathKey` lookup falls back to `'PATH'` when no case-insensitive match is found, but on Windows the actual variable name could differ (e.g., `Path`), and the constructed env only sets one key while `process.env` may still contain the original-cased `PATH`/`Path` from the spawned process's inherited environment, potentially causing two conflicting PATH entries or the override not taking effect depending on how `runCommand`/`child_process` merges env casing on Windows.\n- **Suggestion:** Verify `next.runCommand`'s env merging semantics on Windows (case-insensitive overwrite vs. append) or explicitly delete/overwrite all case variants of PATH before setting the new one.\n\nNo critical/high-severity correctness, security, or concurrency issues found beyond the above; the core fix (adding `stdio: 'pipe'`) correctly prevents child-process stderr from leaking to the parent's stderr, addressing the stated bug.\n\nLLM_USAGE: prompt=1053 completion=612\n\n",
+        "prompt_sha256": "e199787303516c96bde49cbd0c37b6ae227a9d6401cebef36a3a633690390221",
+        "prompt_chars": 4024,
+        "prompt_tokens": 23400,
+        "completion_tokens": 1000,
+        "ai_credits": 3.66,
+        "usd": 0.0366,
+        "latency_ms": 34693,
+        "findings": {
+          "total": 3,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 2
+        }
+      },
+      "B": {
+        "markdown": "## Findings\n\n- **Severity:** low\n- **File:** packages/next/src/cli/next-info.ts\n- **Line:** 84-89\n- **Issue:** `execSync` with a template string still interpolates `binaryName` into a shell command. Since `binaryName` values here are hardcoded literals in the caller, this isn't currently exploitable, but the pattern remains shell-injection-prone if a future caller passes a less-trusted value into `getBinaryVersion`.\n- **Suggestion:** Prefer `execFileSync`/`execSync` with array args (or drop the `execSync` fallback entirely) to avoid shell interpretation of `binaryName`.\n\n- **Severity:** low\n- **File:** test/e2e/cli/cli.test.ts\n- **Line:** 1155-1191\n- **Issue:** The new test creates a temp bin dir and fake `yarn` script but does not restore/verify the original `PATH` env var casing/content beyond the `finally` cleanup of the directory; if `next.runCommand` env merging doesn't override the existing `PATH` (e.g., on case-sensitive POSIX systems where both `PATH` and a differently-cased key exist), the fake binary may not shadow a real `yarn`, causing false negatives/positives. Not a bug in production code, but could make the test flaky in some environments.\n- **Suggestion:** Assert on `pathKey` behavior or place `binDir` reliably first in a freshly constructed PATH string, and verify no pre-existing `yarn` exists earlier in PATH to avoid masking.\n\nNo correctness, security, or concurrency issues found in the core `next-info.ts` change itself — adding `{ stdio: 'pipe' }` correctly suppresses stderr leakage from missing package manager binaries while preserving existing try/catch fallback behavior.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "e199787303516c96bde49cbd0c37b6ae227a9d6401cebef36a3a633690390221",
+        "prompt_chars": 4024,
+        "prompt_tokens": 23400,
+        "completion_tokens": 628,
+        "ai_credits": 3.24,
+        "usd": 0.032400000000000005,
+        "latency_ms": 24819,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 2
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.0366,
+        "routed_usd": 0.032400000000000005,
+        "saved_usd": 0.004199999999999995,
+        "saved_pct": 11.47540983606556,
+        "end_to_end_A_ms": 34693,
+        "end_to_end_B_ms": 24819
+      }
+    },
+    {
+      "repo": "eslint/eslint",
+      "pr": 21311,
+      "title": "fix: ignore __proto__ properties in prefer-object-spread",
+      "patch_sha256": "900599f121a943164249958af685410c1f8ade3566a3e430e8ffbda08c18390d",
+      "run": 1,
+      "order": [
+        "A",
+        "B"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 5,
+        "kept": 5,
+        "dropped": 0,
+        "llm_only": true,
+        "triage_tokens": 0,
+        "triage_latency_ms": 0,
+        "jev_usd": 0
+      },
+      "A": {
+        "markdown": "○ Search (grep)                                                                                  21s\n  │ \"function getStaticPropertyName\"\n  └ Timed out\n\n## Findings\n\n**Severity:** low\n**File:** lib/rules/prefer-object-spread.js\n**Line:** 92-97 (`hasArgumentsWithProtoProperty`)\n**Issue:** The function materializes an intermediate array via `.filter(...)` before calling `.some(...)`, which is a minor, avoidable allocation on every call-expression check (this runs for every `Object.assign` reference in the analyzed program). Not a correctness bug, but slightly less efficient than the existing sibling `hasArgumentsWithAccessors` style would suggest.\n**Suggestion:** Combine into a single `.some(arg => arg.type === \"ObjectExpression\" && hasProtoProperty(arg))` to avoid the intermediate array.\n\n**Severity:** low\n**File:** tests/lib/rules/prefer-object-spread.js\n**Line:** 101-105 (new valid cases) and 999-1073 (new invalid cases)\n**Issue:** No test covers a `__proto__` defined via a getter/setter accessor (e.g. `Object.assign({}, { get __proto__() {} })`). Per the same reasoning documented in the new JSDoc (accessor properties are still own enumerable properties copied via `[[Set]]`), this should also block the autofix, and `isProtoProperty`/`getStaticPropertyName` should already handle it correctly, but there's no regression test to confirm/lock in that behavior.\n**Suggestion:** Add a valid test case such as `\"Object.assign({}, { get __proto__() {} })\"` to explicitly verify accessor-form `__proto__` properties are also excluded from the autofix.\n\n**Severity:** low\n**File:** lib/rules/prefer-object-spread.js\n**Line:** 75-90 (`isProtoProperty`, `hasProtoProperty`)\n**Issue:** `getStaticPropertyName` (per ESLint's `ast-utils` semantics) only resolves computed keys that are statically determinable (string/number literals, simple template literals, etc.). A computed `__proto__` key built from a non-literal expression that still evaluates to the string `\"__proto__\"` at runtime (e.g. via string concatenation) will not be detected, and the autofix could incorrectly proceed. This is an inherent limitation of static analysis rather than a bug unique to this PR, but worth calling out since it's central to the new safety check.\n**Suggestion:** No action likely needed beyond documenting the limitation (static-only detection) in the rule's docs or JSDoc, consistent with how other rules using `getStaticPropertyName` already caveat this.\n\nNo correctness, security, concurrency, or resource-management issues found; the core logic correctly distinguishes the special non-computed `__proto__: value` object-literal form (which does not create an own property) from all other forms (computed/shorthand/method, which do create an own property copied via `[[Set]]` and can trigger the prototype setter), and only guards source arguments (`arguments.slice(1)`), leaving the target argument's `__proto__` semantics correctly preserved when inlined.\n\nLLM_USAGE: prompt=3200 completion=950\n\n",
+        "prompt_sha256": "b3a00bf62f7fc5e6b5383bcc61453e9d40e75e1817e118d3717028eaf25aea9b",
+        "prompt_chars": 7167,
+        "prompt_tokens": 55200,
+        "completion_tokens": 6600,
+        "ai_credits": 11.46,
+        "usd": 0.11460000000000001,
+        "latency_ms": 126278,
+        "findings": {
+          "total": 3,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 3
+        }
+      },
+      "B": {
+        "markdown": "## Findings\n\n- **Severity:** low\n- **File:** lib/rules/prefer-object-spread.js\n- **Line:** hasArgumentsWithProtoProperty (new function)\n- **Issue:** The check only inspects arguments whose type is `ObjectExpression`. A source argument that is a spread-like reference to another variable/object (e.g., `Object.assign({}, foo, { __proto__: proto })` is handled since `foo` isn't an ObjectExpression—fine), but arguments guarded by `isCommaToken`-adjacent extra parens (e.g., `({ __proto__: proto })` wrapped in extra parens) may not have `type === \"ObjectExpression\"` directly if wrapped, though ESTree normally strips parens from `.type`. This is a minor edge-case robustness note rather than a confirmed bug; no test covers parenthesized object arguments.\n- **Suggestion:** Consider adding a test case for a parenthesized `__proto__` source argument to confirm detection still works, or explicitly document that only literal object arguments are checked (spread `...` source objects are out of scope).\n\n- **Severity:** low\n- **File:** lib/rules/prefer-object-spread.js\n- **Line:** `getStaticPropertyName(node) === \"__proto__\"`\n- **Issue:** `getStaticPropertyName` returns `null` for properties whose key cannot be statically determined (e.g., computed with a non-literal expression like `{[x]: 1}`). This is correctly handled since `null !== \"__proto__\"`, but there's no explicit test for a computed non-static key that evaluates to `\"__proto__\"` at runtime (e.g., `{[getKey()]: proto}`), which the rule cannot detect and would silently produce an incorrect autofix in that rare case.\n- **Suggestion:** Document this known limitation (static analysis can't catch dynamically-computed `__proto__` keys) in the rule's doc or code comment, consistent with existing accessor-detection limitations.\n\nOverall the fix correctly distinguishes prototype-setting semantics (`__proto__: value` initializer) from own-property semantics (computed/shorthand/method), and the target-argument exclusion logic (`.slice(1)`) is sound and well-tested. No correctness, security, or resource-management issues found.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "b3a00bf62f7fc5e6b5383bcc61453e9d40e75e1817e118d3717028eaf25aea9b",
+        "prompt_chars": 7167,
+        "prompt_tokens": 24900,
+        "completion_tokens": 787,
+        "ai_credits": 3.76,
+        "usd": 0.0376,
+        "latency_ms": 27194,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 2
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.11460000000000001,
+        "routed_usd": 0.0376,
+        "saved_usd": 0.07700000000000001,
+        "saved_pct": 67.19022687609076,
+        "end_to_end_A_ms": 126278,
+        "end_to_end_B_ms": 27194
+      }
+    },
+    {
+      "repo": "eslint/eslint",
+      "pr": 21311,
+      "title": "fix: ignore __proto__ properties in prefer-object-spread",
+      "patch_sha256": "900599f121a943164249958af685410c1f8ade3566a3e430e8ffbda08c18390d",
+      "run": 2,
+      "order": [
+        "B",
+        "A"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 5,
+        "kept": 5,
+        "dropped": 0,
+        "llm_only": true,
+        "triage_tokens": 0,
+        "triage_latency_ms": 0,
+        "jev_usd": 0
+      },
+      "A": {
+        "markdown": "## Findings\n\n**Severity:** low\n**File:** lib/rules/prefer-object-spread.js\n**Line:** hasArgumentsWithProtoProperty (around line 92-97)\n**Issue:** The check only inspects source arguments that are `ObjectExpression` literals. If a source argument is a spread of a variable, another call, or otherwise not directly an object literal but still contains a `__proto__`-producing shape indirectly (e.g., a nested spread inlined elsewhere in future refactors), it could be missed. Currently this is not exploitable since only literal `ObjectExpression` args matter for this fix, but the guard is tightly coupled to literal detection and silently no-ops for non-literal args, which is correct behavior but worth a comment noting non-literal args are intentionally not checked (they can't be safely statically analyzed anyway).\n**Suggestion:** Add a brief comment clarifying that non-`ObjectExpression` arguments are intentionally skipped because their shape can't be statically determined, to avoid future confusion/regressions when someone tries to \"improve\" this filter.\n\n**Severity:** low\n**File:** lib/rules/prefer-object-spread.js\n**Line:** isProtoProperty (line ~68-72)\n**Issue:** `getStaticPropertyName` returns `null` for non-static computed keys (e.g., `{[x]: proto}` where `x` is a variable), so such properties won't be flagged as `__proto__` even if `x` could be `\"__proto__\"` at runtime. This is an inherent limitation of static analysis and matches ESLint's general approach elsewhere, so it's not a bug per se, but it means the fix doesn't protect against all dynamic `__proto__` pollution vectors in this construct.\n**Suggestion:** None required beyond documenting the limitation (already partially implied by \"static\" in the function name); consistent with existing rule conventions.\n\nNo correctness, security, or concurrency defects were found in the diff itself — the logic correctly special-cases `__proto__` in the first (target) argument (where inlining preserves semantics) versus subsequent (source) arguments (where inlining would change `Object.assign`'s `[[Set]]`-based copy semantics into prototype mutation). Test coverage for both directions is included and matches the described semantics.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "b3a00bf62f7fc5e6b5383bcc61453e9d40e75e1817e118d3717028eaf25aea9b",
+        "prompt_chars": 7167,
+        "prompt_tokens": 24900,
+        "completion_tokens": 778,
+        "ai_credits": 3.75,
+        "usd": 0.0375,
+        "latency_ms": 30873,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 2
+        }
+      },
+      "B": {
+        "markdown": "## Findings\n\nNo correctness, security, or resource-management issues found in this diff.\n\nThe logic is sound: `hasArgumentsWithProtoProperty` (lib/rules/prefer-object-spread.js, lines 60-101) correctly excludes the first (target) argument via `.slice(1)`, since a `__proto__` property inlined from the target retains its original semantics, while relies on `getStaticPropertyName` to catch all key forms (literal, string, computed, shorthand, method) — matching the added test cases. The new condition is only evaluated when `refNode.arguments.length > 1` (line 355), consistent with the pre-existing `hasArgumentsWithAccessors` short-circuit, so no behavior change for the single-argument case, which the tests confirm is still autofixed.\n\nOne minor stylistic note (not a bug): `hasArgumentsWithProtoProperty` uses `.filter(...).some(...)` where a single `.some(arg => arg.type === \"ObjectExpression\" && hasProtoProperty(arg))` would avoid building an intermediate array — negligible performance impact given typical argument counts.\n\n- **Severity:** low\n- **File:** lib/rules/prefer-object-spread.js\n- **Line:** 96-101\n- **Issue:** `hasArgumentsWithProtoProperty` uses `.filter().some()`, creating an unnecessary intermediate array for a simple existence check.\n- **Suggestion:** Combine into a single `.some(arg => arg.type === \"ObjectExpression\" && hasProtoProperty(arg))` call.\n\nLLM_USAGE: prompt=2200 completion=520\n\n",
+        "prompt_sha256": "b3a00bf62f7fc5e6b5383bcc61453e9d40e75e1817e118d3717028eaf25aea9b",
+        "prompt_chars": 7167,
+        "prompt_tokens": 24900,
+        "completion_tokens": 2200,
+        "ai_credits": 5.18,
+        "usd": 0.0518,
+        "latency_ms": 41472,
+        "findings": {
+          "total": 1,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 1
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.0375,
+        "routed_usd": 0.0518,
+        "saved_usd": -0.0143,
+        "saved_pct": -38.13333333333333,
+        "end_to_end_A_ms": 30873,
+        "end_to_end_B_ms": 41472
+      }
+    },
+    {
+      "repo": "pytest-dev/pytest",
+      "pr": 15053,
+      "title": "fixtures: fix lineno off-by-one",
+      "patch_sha256": "0fc5f43fef5649aea743ddad346c7ecd334da694efd4551602b4b7950fce09b2",
+      "run": 1,
+      "order": [
+        "A",
+        "B"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 22,
+        "kept": 2,
+        "dropped": 20,
+        "llm_only": false,
+        "triage_tokens": 10260,
+        "triage_latency_ms": 4755,
+        "jev_usd": 0.00043092
+      },
+      "A": {
+        "markdown": "/ Search (grep)                                                                                  18s\n  │ \"getlocation\"\n  └ 14 files found\n\n/ Search (grep)\n  │ \"getlocation\" (eval\\workspaces\\pytest-dev-pytest-pr-15053\\src)\n  └ 1 file found\n\n/ Search (grep)\n  │ \"getlocation|from.*compat import|getfslineno\" (eval\\workspaces\\pytest-dev-pytest-pr-15053\\src)\n  └ 1 file found\n\n/ Search (grep)\n  │ \"getlocation\" (eval\\workspaces\\pytest-dev-pytest-pr-15053)\n  └ 2 files found\n\n● Read compat.py\n  │ eval\\workspaces\\pytest-dev-pytest-pr-15053\\src\\_pytest\\compat.py\n  └ L1:100 (100 lines read)\n\n/ Search (grep)\n  │ \"compat\\.getlocation|import getlocation\"\n  │ (eval\\workspaces\\pytest-dev-pytest-pr-15053\\src\\_pytest)\n  └ No matches found\n\n✗ Search (grep)\n  │ \"baseid|getlocation\" (eval\\workspaces\\pytest-dev-pytest-pr-15053\\src\\_pytest\\python.py)\n  └ Search paths do not exist: C:\\Users\\choudharysh\\prune-review\\eval\\workspaces\\pytest-dev-pytest-p\n    r-15053\\src\\_pytest\\python.py\n\n/ Search (glob)\n  │ \"**/fixtures.py\" in eval\\workspaces\\pytest-dev-pytest-pr-15053\\src\n  └ No matches found\n\n● List directory eval\\workspaces\\pytest-dev-pytest-pr-15053\\src\n  └ 1 file found\n\n● List directory eval\\workspaces\\pytest-dev-pytest-pr-15053\\src\\_pytest\n  └ 1 file found\n\n## Findings\n\n- **Severity:** medium\n- **File:** src/_pytest/compat.py\n- **Line:** 82-89\n- **Issue:** `getlocation()` is a general-purpose utility (not fixtures-specific) that likely has multiple call sites throughout `_pytest` (e.g., collection/warning/error messages, `--fixtures`, `--fixtures-per-test`, \"Requested fixture defined in:\" messages). The evidence packet only shows the function definition and test-expectation updates for fixtures-related tests; there is no visibility into whether every other caller of `getlocation()` was audited for compensating `+1`/`-1` adjustments that relied on the old (buggy) off-by-one behavior. If any caller added its own correction on top of the old off-by-one result, this fix could introduce a new, opposite off-by-one regression at that call site.\n- **Suggestion:** Grep the full source tree for all callers of `getlocation` (not just fixtures-related ones) and confirm none of them apply an additional line-number adjustment that assumed the previous (incorrect) `+1` behavior. Add/adjust tests for any other user-facing message that reports a source location derived from this function.\n\n- **Severity:** low\n- **File:** changelog/15052.bugfix.rst\n- **Line:** 1\n- **Issue:** The changelog entry scopes the fix narrowly to `--fixtures` and `--fixtures-per-test`, but the underlying change is in a shared helper (`getlocation`) that may affect other line-number reporting surfaces (e.g., \"Requested fixture ... defined in:\" messages shown being updated in `testing/python/fixtures.py`, which is not a `--fixtures`/`--fixtures-per-test` code path). The changelog could understate the actual behavioral change surface for downstream consumers/tools that parse pytest's textual location output.\n- **Suggestion:** Broaden the changelog wording to mention that any pytest-reported \"defined in `<file>:<line>`\" message is affected, not just the two listed options.\n\nNo correctness, security, concurrency, or resource-management issues were found in the code diff itself — the change is a straightforward, well-tested off-by-one line-number fix with corresponding test expectation updates.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "e5778be3fc3ff72a31634b4154c01732a6101b5f7eafcd9d539af2656c556133",
+        "prompt_chars": 13236,
+        "prompt_tokens": 328800,
+        "completion_tokens": 4000,
+        "ai_credits": 14.63,
+        "usd": 0.1463,
+        "latency_ms": 151974,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 1
+        }
+      },
+      "B": {
+        "markdown": "● List directory .\n  └ 16 files found\n\n✗ Fetching web content https://raw.githubusercontent.com/pytest-dev/pytest/main/src/_pytest/compat.…\n  └ Permission denied and could not request permission from user\n\n✗ Fetching web content https://github.com/pytest-dev/pytest/blob/main/src/_pytest/compat.py · url: …\n  └ Permission denied and could not request permission from user\n\n## Findings\n\n- **Severity:** medium\n- **File:** src/_pytest/compat.py\n- **Line:** 85-88 (`getlocation`)\n- **Issue:** `getlocation()` is a widely-used helper (fixture listings, `--fixtures`/`--fixtures-per-test` output, error/collection reporting) whose returned string format is effectively part of pytest's user-facing output contract. Removing the `+ 1` changes the displayed line number for every caller of this function, not just the one test updated in the diff. If any other test file, doctest, or plugin asserts on the previous (off-by-one) line numbers produced by this function, they will now fail or silently report incorrect line info that goes unnoticed since the packet only shows one updated assertion.\n- **Suggestion:** Grep the full test suite (not just `testing/python/fixtures.py`) for other hard-coded line-number assertions that derive from `getlocation` (e.g. other `--fixtures` snapshot tests, `test_setuponly.py`, conftest-related fixture-listing tests) and update them together with this change; add a changelog/news fragment documenting the behavior fix since it alters previously \"off\" but externally-observed output.\n\n- **Severity:** low\n- **File:** src/_pytest/compat.py\n- **Line:** 85-88\n- **Issue:** No changelog entry is included in the diff for a user-visible behavior change (line numbers reported by `--fixtures` and similar output now shift by one). This is a subtle but real change to command output that downstream tooling/scripts parsing pytest's fixture listings could depend on.\n- **Suggestion:** Add a `changelog/<issue>.bugfix.rst` entry describing the off-by-one fix so users relying on exact line numbers are aware of the change.\n\nNo correctness bugs, concurrency, security, or resource-management issues were found in the two hunks themselves — the arithmetic change is self-consistent with the updated test expectation (`:6` → `:5`).\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "dffaa648198f226789729dd66fb4edb9e2f0e59adf95833188fda9e911457052",
+        "prompt_chars": 2115,
+        "prompt_tokens": 91800,
+        "completion_tokens": 2400,
+        "ai_credits": 6.32,
+        "usd": 0.0632,
+        "latency_ms": 71550,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 1
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.1463,
+        "routed_usd": 0.06363092000000001,
+        "saved_usd": 0.08266908,
+        "saved_pct": 56.506548188653454,
+        "end_to_end_A_ms": 151974,
+        "end_to_end_B_ms": 76305
+      }
+    },
+    {
+      "repo": "pytest-dev/pytest",
+      "pr": 15053,
+      "title": "fixtures: fix lineno off-by-one",
+      "patch_sha256": "0fc5f43fef5649aea743ddad346c7ecd334da694efd4551602b4b7950fce09b2",
+      "run": 2,
+      "order": [
+        "B",
+        "A"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 22,
+        "kept": 2,
+        "dropped": 20,
+        "llm_only": false,
+        "triage_tokens": 0,
+        "triage_latency_ms": 29,
+        "jev_usd": 0
+      },
+      "A": {
+        "markdown": "## Findings\n\nNo functional bugs identified in this diff. The change is a minimal, correct off-by-one fix in `getlocation()` (removing the erroneous `+ 1`), and all affected test expectations in `testing/python/fixtures.py` and `testing/python/show_fixtures_per_test.py` were updated consistently to match the corrected (now 0-indexed-to-1-indexed-once, not twice) line numbers.\n\n- **Severity:** low\n- **File:** src/_pytest/compat.py\n- **Line:** 85-86\n- **Issue:** `getlocation()` is a shared utility; the diff doesn't show all call sites. If any other caller in the codebase (outside the diff) relied on the previous `lineno + 1` behavior for its own display logic (e.g. adding its own offset), this fix could silently shift those outputs by one line as well, since the fix changes the function's public contract (return value semantics).\n- **Suggestion:** Grep for all `getlocation(` call sites across `src/_pytest` to confirm none double-compensate for the old off-by-one, and add/update changelog wording to note this is a public-ish behavior change if `getlocation` is considered part of any plugin-facing API.\n\n- **Severity:** low\n- **File:** changelog/15052.bugfix.rst\n- **Line:** 1\n- **Issue:** Changelog only mentions `--fixtures` and `--fixtures-per-test`, but the fix also affects other user-visible messages exercised by the tests (e.g. \"Requested fixture ... defined in:\" and \"reserved word for fixtures\" errors in `fixtures.py` tests around lines 4305-4425 and 5278-5281). Users seeing those other messages change may not connect it to this changelog entry.\n- **Suggestion:** Broaden the changelog wording to cover fixture-location reporting generally, not just the two CLI options.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "e5778be3fc3ff72a31634b4154c01732a6101b5f7eafcd9d539af2656c556133",
+        "prompt_chars": 13236,
+        "prompt_tokens": 27100,
+        "completion_tokens": 981,
+        "ai_credits": 4.52,
+        "usd": 0.0452,
+        "latency_ms": 34180,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 2
+        }
+      },
+      "B": {
+        "markdown": "✗ Check compat.py getlocation function context (shell)\n  │ cd C:\\Users\\choudharysh\\prune-review; git clone --depth 1\n  │ https://github.com/pytest-dev/pytest.git pytest-check 2>$null; Get-Content\n  │ pytest-check\\src\\_pytest\\compat.py | Select-Object -Skip 65 -First 30\n  └ Permission denied and could not request permission from user\n\n✗ Fetching web content https://raw.githubusercontent.com/pytest-dev/pytest/main/src/_pytest/comp… 5s\n  └ Permission denied and could not request permission from user\n\n✗ Try to get pytest source via pip download (shell)\n  │ pip download pytest --no-deps -d C:\\temp\\pytest_src 2>&1 | Select-Object -Last 5\n  └ Permission denied and could not request permission from user\n\n## Findings\n\n- **Severity:** medium\n- **File:** src/_pytest/compat.py\n- **Line:** 85-86\n- **Issue:** `getlocation()` is a shared utility used throughout pytest's internals (fixture location reporting, warning locations, `--fixtures -v` output, etc.), not just the single call site exercised in `testing/python/fixtures.py`. Removing the `+ 1` offset changes the printed line number for every caller. The diff only updates one assertion (`test_show_fixtures_testmodule.py:6` → `:5`); there is no evidence other tests/snapshots that depend on `getlocation` (e.g., deprecation warning locations, other `--fixtures` tests, doctest location reporting) were audited/updated, so this could silently break unrelated line-number assertions elsewhere in the suite.\n- **Suggestion:** Grep the full test suite for other hardcoded `:<lineno>` expectations tied to `getlocation` output (fixture/warning location tests) and update them, or add a regression test at a fixture defined on a known line to lock in the corrected behavior broadly, not just the one existing case.\n\n- **Severity:** low\n- **File:** testing/python/fixtures.py\n- **Line:** 3886\n- **Issue:** Only a single assertion was adjusted for the off-by-one fix; if `test_show_fixtures_testmodule.py` (referenced but not shown in the diff) contains multiple fixtures whose expected locations were derived the same way, any sibling assertions not included in this hunk could still reflect the old (incorrect) line numbers.\n- **Suggestion:** Confirm no other line-number expectations in this test file (or the referenced test module) need the same `-1` adjustment; run the full `fixtures.py` test file to catch any missed cases.\n\nNo correctness bug in the core fix itself — `co_firstlineno` is already 1-based, so removing the extra `+ 1` correctly fixes the reported off-by-one. Concerns above are about test coverage/regression risk from this shared-utility change, not the change's own logic.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "dffaa648198f226789729dd66fb4edb9e2f0e59adf95833188fda9e911457052",
+        "prompt_chars": 2115,
+        "prompt_tokens": 92400,
+        "completion_tokens": 2900,
+        "ai_credits": 7.01,
+        "usd": 0.0701,
+        "latency_ms": 113993,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 1
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.0452,
+        "routed_usd": 0.0701,
+        "saved_usd": -0.0249,
+        "saved_pct": -55.08849557522124,
+        "end_to_end_A_ms": 34180,
+        "end_to_end_B_ms": 114022
+      }
+    },
+    {
+      "repo": "prometheus/prometheus",
+      "pr": 19731,
+      "title": "API: Clamp the experimental search endpoints to 1000",
+      "patch_sha256": "c61d94dc5661a51465a24cb75d4f36e6b6be960d5cd0ac9d9999ee2f23f01db5",
+      "run": 1,
+      "order": [
+        "A",
+        "B"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 22,
+        "kept": 4,
+        "dropped": 18,
+        "llm_only": false,
+        "triage_tokens": 11494,
+        "triage_latency_ms": 5462,
+        "jev_usd": 0.000482748
+      },
+      "A": {
+        "markdown": "✗ Fetching web content https://raw.githubusercontent.com/prometheus/prometheus/main/web/api/v1/sear…\n  └ Permission denied and could not request permission from user\n\n✗ Fetching web content https://github.com/prometheus/prometheus/blob/main/web/api/v1/search.go · ur…\n  └ Permission denied and could not request permission from user\n\n● Check repo contents (shell)\n  │ Get-ChildItem C:\\Users\\choudharysh\\prune-review -Recurse -Depth 1 | Select-Object -First 20\n  └ 35 lines…\n\n## Findings\n\n- **Severity:** medium\n- **File:** web/api/v1/search.go\n- **Line:** `sp.batchSize = min(sp.batchSize, sp.limit, maxSearchBatchSize)` (new line after the `batch_size` parsing block, ~line 299)\n- **Issue:** This clamp treats `sp.limit` as an unconditional upper bound, but the rest of the file treats a non-positive `sp.limit` as the sentinel for \"no limit\" — see `nextBatch`'s existing guards `if s.limit > 0 { capacity = min(capacity, s.limit-s.emitted) }` and `if s.limit > 0 && s.emitted >= s.limit`. If `sp.limit` is ever `0` (or negative) at the point this new line runs, `min(sp.batchSize, 0, maxSearchBatchSize)` forces `sp.batchSize` to `0`. Downstream, `nextBatch`'s loop `for len(batch) < s.batchSize` would never execute with `batchSize == 0`, silently producing an unbounded stream of empty batches instead of real results — a functional regression that is inconsistent with how \"no limit\" is handled everywhere else in this file. The new test matrix in `search_test.go` never exercises `limit == 0` / unset-to-zero, so this asymmetry is untested.\n- **Suggestion:** Guard the new clamp the same way `nextBatch` does, e.g. `if sp.limit > 0 { sp.batchSize = min(sp.batchSize, sp.limit) }; sp.batchSize = min(sp.batchSize, maxSearchBatchSize)`, and add a test case where `sp.limit` resolves to the \"unbounded\" sentinel to confirm `batchSize` is only capped by `maxSearchBatchSize` in that case.\n\n- **Severity:** low\n- **File:** docs/querying/api.md, web/api/v1/openapi_paths.go, web/api/v1/openapi_schemas.go\n- **Line:** \"Clamped to 1000 and the effective result limit.\"\n- **Issue:** The added description is slightly ambiguous about which bound is applied first/whether both are independent caps; a reader could parse it as \"clamped to 1000, and [also clamped to] the effective result limit\" or misread it as a combined value.\n- **Suggestion:** Reword for clarity, e.g. \"Clamped to the effective result limit and a maximum of 1000.\"\n\nNo other correctness, concurrency, or resource-management issues were identified in the diff; the `nextBatch` capacity pre-sizing change (`capacity := s.batchSize; if s.limit > 0 { capacity = min(capacity, s.limit-s.emitted) }`) is safe given the `hasMore` short-circuit at the top of the function preventing negative capacity.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "6c79b586011b8eccd7499559246d2011c7773b1f9431a2660a52a79c20343a0d",
+        "prompt_chars": 16565,
+        "prompt_tokens": 119800,
+        "completion_tokens": 8700,
+        "ai_credits": 15.48,
+        "usd": 0.15480000000000002,
+        "latency_ms": 125568,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 1
+        }
+      },
+      "B": {
+        "markdown": "● List directory .\n  └ 16 files found\n\n## Findings\n\n- **Severity:** high\n- **File:** web/api/v1/search.go\n- **Line:** `sp.batchSize = min(sp.batchSize, sp.limit, maxSearchBatchSize)` (parseSearchParams, ~line 299)\n- **Issue:** The streamer treats `limit == 0` as a valid sentinel meaning \"unbounded\" — see the very next hunk in `nextBatch`, which guards every use of `s.limit` with `if s.limit > 0`. The new clamp line does not apply that same guard: if `sp.limit` can legitimately be `0` (unlimited) when it reaches this point, `min(sp.batchSize, 0, maxSearchBatchSize)` collapses `batchSize` to `0`. A `batchSize` of `0` makes the `for len(batch) < s.batchSize` loop in `nextBatch` a no-op, so every batch comes back empty while `hasMore` likely remains true — the endpoint would spin/never terminate progress for any \"no limit\" request, a functional regression and potential resource-exhaustion/hang for callers. This is inconsistent with the defensive `s.limit > 0` pattern used one hunk later for the exact same field.\n- **Suggestion:** Only fold `sp.limit` into the clamp when it's a positive, finite cap: `sp.batchSize = min(sp.batchSize, maxSearchBatchSize); if sp.limit > 0 { sp.batchSize = min(sp.batchSize, sp.limit) }`. Add a unit test that sends an explicit unlimited request (however that's expressed for `limit`, e.g. `limit=0` or omitted with no operator cap) and asserts `batchSize` still resolves to `maxSearchBatchSize`, not `0`.\n\n- **Severity:** low\n- **File:** web/api/v1/search_test.go\n- **Line:** 1354-1372 (`TestSearchBatchSize` limit/batchSize table)\n- **Issue:** The new table-driven test never exercises the true \"unlimited limit\" case using whatever sentinel the production `sp.limit` field actually uses when a limit is not supplied at all and no operator cap exists combined with a huge `batch_size` — it only tests `limit=math.MaxInt` (a very large finite number) as the stand-in for \"uncapped.\" This leaves the scenario described above (limit sentinel `0`) unverified, which is exactly where the regression above could hide.\n- **Suggestion:** Add a case that omits `limit` (or passes the literal value your codebase treats as \"no cap\") together with an oversized `batch_size`, asserting the result is still clamped to `maxSearchBatchSize`.\n\nNo other correctness, concurrency, or resource-management issues were found in the remaining hunks; the `capacity := min(s.batchSize, s.limit-s.emitted)` change in `nextBatch` is safe because it already guards with `s.limit > 0` and `batchSize` is pre-clamped not to exceed `limit`, so `capacity` cannot go negative in normal operation.\n\nLLM_USAGE: prompt=2400 completion=850\n\n",
+        "prompt_sha256": "5a51c536e31f03bf53ae2ee81415f2f21031d59d813d3846f629f4069e6ae006",
+        "prompt_chars": 5783,
+        "prompt_tokens": 49300,
+        "completion_tokens": 7600,
+        "ai_credits": 11.11,
+        "usd": 0.11109999999999999,
+        "latency_ms": 103362,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 1,
+          "medium": 0,
+          "low": 1
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.15480000000000002,
+        "routed_usd": 0.111582748,
+        "saved_usd": 0.043217252000000025,
+        "saved_pct": 27.918121447028433,
+        "end_to_end_A_ms": 125568,
+        "end_to_end_B_ms": 108824
+      }
+    },
+    {
+      "repo": "prometheus/prometheus",
+      "pr": 19731,
+      "title": "API: Clamp the experimental search endpoints to 1000",
+      "patch_sha256": "c61d94dc5661a51465a24cb75d4f36e6b6be960d5cd0ac9d9999ee2f23f01db5",
+      "run": 2,
+      "order": [
+        "B",
+        "A"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 22,
+        "kept": 4,
+        "dropped": 18,
+        "llm_only": false,
+        "triage_tokens": 0,
+        "triage_latency_ms": 0,
+        "jev_usd": 0
+      },
+      "A": {
+        "markdown": "✗ Clone prometheus repo for context (shell)\n  │ git clone --depth 50 https://github.com/prometheus/prometheus.git C:\\temp\\prom-clone 2>&1 |\n  │ Select-Object -Last 5\n  └ Permission denied and could not request permission from user\n\n✗ Fetching web content https://raw.githubusercontent.com/prometheus/prometheus/main/web/api/v1/sear…\n  └ Permission denied and could not request permission from user\n\n✗ Fetching web content https://raw.githubusercontent.com/prometheus/prometheus/main/web/api/v1/sear…\n  └ Permission denied and could not request permission from user\n\n● Check if prometheus source exists locally (shell)\n  │ Get-ChildItem C:\\Users\\choudharysh\\prune-review -Recurse -Filter \"search.go\" -ErrorAction\n  │ SilentlyContinue\n  └ 6 lines…\n\nWe have the actual repo checkout locally. Let me view the full relevant sections.\n\n● Read search.go\n  │ eval\\workspaces\\prometheus-prometheus-pr-19731\\web\\api\\v1\\search.go\n  └ L240:310 (71 lines read)\n\n● Read search.go\n  │ eval\\workspaces\\prometheus-prometheus-pr-19731\\web\\api\\v1\\search.go\n  └ L420:500 (81 lines read)\n\n/ Search (grep)\n  │ \"searchResultStreamer\\[\" (eval\\workspaces\\prometheus-prometheus-pr-19731\\web\\api\\v1)\n  └ 4 lines found\n\nOnly one production construction site (line 492), always fed by `sp.batchSize` from `parseSearchParams`, so the clamp is applied consistently. The logic is sound and well-tested. No bugs found in the core changes.\n\n## Findings\n\nNo correctness, concurrency, security, or resource-management issues found in this diff. The clamping logic is sound:\n\n- `parseSearchParams` always resolves `sp.limit` to a positive value (default 100, operator-capped, or user-supplied `>0`) before the new `sp.batchSize = min(sp.batchSize, sp.limit, maxSearchBatchSize)` line (`search.go`), so there is no risk of the clamp zeroing out `batchSize` via an unbounded/zero limit.\n- The one production call site constructing `searchResultStreamer` (`streamSearchResults`) always uses the clamped `sp.batchSize`, so the `1000`-capacity ceiling is enforced consistently; no other constructors bypass `parseSearchParams`.\n- `nextBatch`'s new `capacity := min(capacity, s.limit-s.emitted)` cannot underflow/panic on `make([]T, 0, capacity)` because `s.emitted` never exceeds `s.limit` at the start of a call (the loop returns as soon as `emitted >= limit`), and `batchSize <= limit` is guaranteed by the upstream clamp.\n- Tests (`TestSearchBatchSize`, `TestSearchResultStreamerBatchCapacity`) cover the clamp interactions (operator cap, user limit, `math.MaxInt` inputs) and match the implementation's behavior.\n- Docs/OpenAPI schema/golden files were updated consistently with the behavior change.\n\nThis is a well-scoped, low-risk fix preventing unbounded memory pre-allocation (`make([]T, 0, batchSize)`) from a client-supplied `batch_size` when `limit` is large/uncapped.\n\nLLM_USAGE: prompt=8200 completion=1450\n\n",
+        "prompt_sha256": "6c79b586011b8eccd7499559246d2011c7773b1f9431a2660a52a79c20343a0d",
+        "prompt_chars": 16565,
+        "prompt_tokens": 257600,
+        "completion_tokens": 7500,
+        "ai_credits": 18.24,
+        "usd": 0.18239999999999998,
+        "latency_ms": 166543,
+        "findings": {
+          "total": 0,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 0
+        }
+      },
+      "B": {
+        "markdown": "✗ Fetching web content https://raw.githubusercontent.com/prometheus/prometheus/main/web/api/v1/sear…\n  └ Permission denied and could not request permission from user\n\n✗ Fetching web content https://github.com/prometheus/prometheus/blob/main/web/api/v1/search.go · ur…\n  └ Permission denied and could not request permission from user\n\n✗ Fetching web content https://raw.githubusercontent.com/prometheus/prometheus/main/web/api/v1/sear…\n  └ Permission denied and could not request permission from user\n\n## Findings\n\n**Severity:** high\n**File:** web/api/v1/search.go\n**Line:** `sp.batchSize = min(sp.batchSize, sp.limit, maxSearchBatchSize)` (parseSearchParams, hunk 2) and `capacity := s.batchSize; if s.limit > 0 { capacity = min(capacity, s.limit-s.emitted) }` (nextBatch, hunk 3)\n**Issue:** The added comment on `maxSearchBatchSize` explicitly states it must bound batch allocations \"even when the result limit is uncapped,\" and `nextBatch` treats `s.limit <= 0` as the sentinel for \"uncapped\" (it only folds `s.limit` into the capacity when `s.limit > 0`). However, the new clamp line in `parseSearchParams` folds `sp.limit` into the `min()` unconditionally, with no `sp.limit > 0` guard. If `sp.limit` is 0 (the \"uncapped\" sentinel used elsewhere in this same file), `min(sp.batchSize, 0, maxSearchBatchSize)` evaluates to `0`, silently setting `batchSize` to 0 for any request with an uncapped limit. Since `nextBatch`'s loop condition is `for len(batch) < s.batchSize`, a batch size of 0 means the loop body never executes and every call returns an empty batch, effectively breaking result streaming (search endpoints return zero results) whenever the limit is uncapped — precisely the case the new constant was introduced to support. The added tests only exercise \"uncapped\" behavior using `limit=math.MaxInt` as a stand-in, never the actual `sp.limit == 0` sentinel path, so this regression is not caught.\n**Suggestion:** Mirror the guard used in `nextBatch`: only include `sp.limit` in the clamp when it's a positive (capped) value, e.g. `sp.batchSize = min(sp.batchSize, maxSearchBatchSize); if sp.limit > 0 { sp.batchSize = min(sp.batchSize, sp.limit) }`. Add a test case with an explicit uncapped limit (0) to verify `batchSize` resolves to `maxSearchBatchSize` (or the requested batch size) instead of 0.\n\n**Severity:** medium\n**File:** web/api/v1/search.go\n**Line:** `sp.batchSize = min(sp.batchSize, sp.limit, maxSearchBatchSize)`\n**Issue:** This line assumes `sp.limit` is always a well-formed non-negative value at this point. If any earlier validation path allows `sp.limit` to be negative (e.g., a config/operator override or an unvalidated intermediate value), `min()` would propagate that negative number into `sp.batchSize`, which then flows into `make([]T, 0, capacity)` in `nextBatch` and would panic with `makeslice: cap out of range`, turning a bad-input case into a server-side crash (DoS) rather than a handled 4xx error.\n**Suggestion:** Defensively clamp `sp.batchSize` to be at least 1 (or reject/normalize non-positive `sp.limit` earlier) before using it as a slice capacity, e.g. `sp.batchSize = max(1, min(sp.batchSize, maxSearchBatchSize, ...))`.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "5a51c536e31f03bf53ae2ee81415f2f21031d59d813d3846f629f4069e6ae006",
+        "prompt_chars": 5783,
+        "prompt_tokens": 100800,
+        "completion_tokens": 6000,
+        "ai_credits": 10.83,
+        "usd": 0.10830000000000001,
+        "latency_ms": 98192,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 1,
+          "medium": 1,
+          "low": 0
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.18239999999999998,
+        "routed_usd": 0.10830000000000001,
+        "saved_usd": 0.07409999999999997,
+        "saved_pct": 40.62499999999999,
+        "end_to_end_A_ms": 166543,
+        "end_to_end_B_ms": 98192
+      }
+    },
+    {
+      "repo": "spring-projects/spring-framework",
+      "pr": 37295,
+      "title": "Use isEmpty to check if a collection is empty",
+      "patch_sha256": "ff46bba96106a69700acf5936b76b5e4e977c3bfb348d80f1ff4bf2c66cd9b95",
+      "run": 1,
+      "order": [
+        "A",
+        "B"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 10,
+        "kept": 10,
+        "dropped": 0,
+        "llm_only": true,
+        "triage_tokens": 4806,
+        "triage_latency_ms": 4126,
+        "jev_usd": 0.000201852
+      },
+      "A": {
+        "markdown": "## Findings\n\nNo issues found. All changes are mechanical, behavior-preserving replacements of `.size() > 0` / `.size() == 0` / `.length() > 0` with the equivalent `.isEmpty()` / `!.isEmpty()` checks. Semantics are unchanged since `size() == 0 ⟺ isEmpty()` for standard `Collection` implementations (and `String.length() > 0 ⟺ !isEmpty()`), no null-check logic was altered, and no synchronization or resource-handling behavior is affected.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "245383bb1e23d1662ca9563f01ba58b16a1298e06f6250c4136db29cbe32fb10",
+        "prompt_chars": 9262,
+        "prompt_tokens": 25800,
+        "completion_tokens": 201,
+        "ai_credits": 3.4,
+        "usd": 0.034,
+        "latency_ms": 20007,
+        "findings": {
+          "total": 0,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 0
+        }
+      },
+      "B": {
+        "markdown": "## Findings\n\nNo issues found. All changes are mechanical, behavior-preserving replacements of `size() > 0` / `size() == 0` with `!isEmpty()` / `isEmpty()`. Semantics are identical for `List`, `Map`, and `String` (via `Collection.isEmpty()`/`Map.isEmpty()`/`String.isEmpty()`), with no changes to control flow, null-handling, thread-safety, or resource management.\n\nLLM_USAGE: prompt=1911 completion=612\n\n",
+        "prompt_sha256": "245383bb1e23d1662ca9563f01ba58b16a1298e06f6250c4136db29cbe32fb10",
+        "prompt_chars": 9262,
+        "prompt_tokens": 25800,
+        "completion_tokens": 172,
+        "ai_credits": 3.37,
+        "usd": 0.0337,
+        "latency_ms": 24587,
+        "findings": {
+          "total": 0,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 0
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.034,
+        "routed_usd": 0.033901852,
+        "saved_usd": 0.00009814799999999929,
+        "saved_pct": 0.288670588235292,
+        "end_to_end_A_ms": 20007,
+        "end_to_end_B_ms": 28713
+      }
+    },
+    {
+      "repo": "spring-projects/spring-framework",
+      "pr": 37295,
+      "title": "Use isEmpty to check if a collection is empty",
+      "patch_sha256": "ff46bba96106a69700acf5936b76b5e4e977c3bfb348d80f1ff4bf2c66cd9b95",
+      "run": 2,
+      "order": [
+        "B",
+        "A"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 10,
+        "kept": 10,
+        "dropped": 0,
+        "llm_only": true,
+        "triage_tokens": 0,
+        "triage_latency_ms": 0,
+        "jev_usd": 0
+      },
+      "A": {
+        "markdown": "## Findings\n\nNo issues found. Each change is a mechanical, behavior-preserving substitution of `size() > 0` / `size() == 0` / `length() > 0` checks with equivalent `isEmpty()` / `!isEmpty()` calls. Semantics are identical for `List`, `Map`, and `String`, with no changes to control flow, error handling, concurrency, or API contracts.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "245383bb1e23d1662ca9563f01ba58b16a1298e06f6250c4136db29cbe32fb10",
+        "prompt_chars": 9262,
+        "prompt_tokens": 25800,
+        "completion_tokens": 150,
+        "ai_credits": 3.35,
+        "usd": 0.0335,
+        "latency_ms": 22846,
+        "findings": {
+          "total": 0,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 0
+        }
+      },
+      "B": {
+        "markdown": "## Findings\n\nNo issues found. All changes are mechanical, semantically-equivalent replacements of `size() > 0` / `size() == 0` / `length() > 0` with `isEmpty()` / `!isEmpty()`, with no change in behavior, null-safety, thread-safety, or API contracts.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "245383bb1e23d1662ca9563f01ba58b16a1298e06f6250c4136db29cbe32fb10",
+        "prompt_chars": 9262,
+        "prompt_tokens": 25800,
+        "completion_tokens": 121,
+        "ai_credits": 3.32,
+        "usd": 0.0332,
+        "latency_ms": 25999,
+        "findings": {
+          "total": 0,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 0
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.0335,
+        "routed_usd": 0.0332,
+        "saved_usd": 0.00030000000000000165,
+        "saved_pct": 0.8955223880597064,
+        "end_to_end_A_ms": 22846,
+        "end_to_end_B_ms": 25999
+      }
+    },
+    {
+      "repo": "tokio-rs/tokio",
+      "pr": 8454,
+      "title": "io: reject zero copy buffer sizes",
+      "patch_sha256": "ad391ec23cf32f20a20b5ede1467435c89ec703dbb13b516d09568459a0e07fc",
+      "run": 1,
+      "order": [
+        "A",
+        "B"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 4,
+        "kept": 4,
+        "dropped": 0,
+        "llm_only": true,
+        "triage_tokens": 0,
+        "triage_latency_ms": 0,
+        "jev_usd": 0
+      },
+      "A": {
+        "markdown": "## Findings\n\n- **Severity:** medium\n- **File:** tokio/src/io/util/copy_bidirectional.rs\n- **Line:** 108-116\n- **Issue:** This is a breaking behavioral change: previously `copy_bidirectional_with_sizes(a, b, 0, n)` would presumably construct a zero-sized buffer (or misbehave silently); now it panics. Panicking on user-supplied runtime values (not necessarily programmer error/const) is a stricter API contract change that could crash existing production callers who pass a size computed at runtime (e.g., from config) without validating it themselves. This isn't documented as a change in the CHANGELOG, only in the doc comment.\n- **Suggestion:** Consider returning a `Result`/`io::Error` instead of panicking, or at minimum call this out clearly in release notes as a breaking change, since callers relying on prior (even if degenerate) zero-buffer behavior will now abort instead of erroring gracefully.\n\n- **Severity:** low\n- **File:** tokio/src/io/util/copy_bidirectional.rs\n- **Line:** 93-95\n- **Issue:** The `# Panics` doc section states buffers must be nonzero but doesn't clarify whether this is checked only at call time (immediately) vs. lazily during polling, which matters for callers wrapping this in a spawned task expecting errors rather than panics.\n- **Suggestion:** Clarify that the check happens synchronously before any I/O occurs, so callers can validate inputs beforehand to avoid the panic path in production.\n\nNo correctness, thread-safety, or resource-management issues were found; the added asserts and tests are straightforward and correctly placed before any buffer allocation/use.\n\nLLM_USAGE: prompt=1015 completion=397\n\n",
+        "prompt_sha256": "ce417aea507b606f25d0c32d9b037a5c9ad2b52b9be1f9282c1c13df20e3cf0e",
+        "prompt_chars": 3701,
+        "prompt_tokens": 23500,
+        "completion_tokens": 591,
+        "ai_credits": 3.22,
+        "usd": 0.0322,
+        "latency_ms": 27613,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 1
+        }
+      },
+      "B": {
+        "markdown": "## Findings\n\n- **Severity:** medium\n- **File:** tokio/src/io/util/copy_bidirectional.rs\n- **Line:** 108-116\n- **Issue:** Changing from silently accepting a zero buffer size (which likely caused an infinite/no-progress loop or hang previously) to a panic is a behavioral/API contract change for a public function. Existing callers passing `0` (even unintentionally) will now panic at runtime instead of hanging or behaving unexpectedly, which is a breaking change not reflected in the crate's semver/changelog notes in this diff.\n- **Suggestion:** Document this clearly as a breaking change in CHANGELOG, and consider whether returning a `Result`/`io::Error` (if the function signature allowed) or a debug-only assertion would be less disruptive than an unconditional panic in release builds. If panic is intentional, ensure it's called out prominently in release notes.\n\n- **Severity:** low\n- **File:** tokio/src/io/util/copy_bidirectional.rs\n- **Line:** 108-116\n- **Issue:** The two `assert!` calls only check for zero; they don't guard against pathologically large sizes causing allocation failures, but that's likely out of scope. More relevantly, the panic happens after the function is already `async` and polled — panicking inside an async fn on first poll is fine, but no `debug_assert` fallback exists for cases where callers may want zero-size buffers to mean \"unbounded\"/\"default\" semantics (no such semantics existed, so this is minor).\n- **Suggestion:** No action needed unless the maintainers intend a non-panicking API; otherwise current approach is acceptable.\n\n- **Severity:** low\n- **File:** tokio/tests/io_copy_bidirectional.rs\n- **Line:** 144-160\n- **Issue:** New tests use `#[test]` + `tokio_test::block_on` instead of the crate's usual `#[tokio::test]` pattern used elsewhere in the file, which is inconsistent but not functionally wrong (likely because `#[tokio::test]` doesn't support `should_panic` combined with async blocks cleanly in this crate's setup). No bug, but worth noting as a style inconsistency.\n- **Suggestion:** Confirm this pattern is intentional/consistent with other should_panic async tests in the tokio test suite; otherwise no change needed.\n\nNo correctness, concurrency, or resource-management bugs found beyond the API-contract behavior change noted above.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "ce417aea507b606f25d0c32d9b037a5c9ad2b52b9be1f9282c1c13df20e3cf0e",
+        "prompt_chars": 3701,
+        "prompt_tokens": 23500,
+        "completion_tokens": 845,
+        "ai_credits": 3.47,
+        "usd": 0.0347,
+        "latency_ms": 31314,
+        "findings": {
+          "total": 3,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 2
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.0322,
+        "routed_usd": 0.0347,
+        "saved_usd": -0.0025000000000000022,
+        "saved_pct": -7.76397515527951,
+        "end_to_end_A_ms": 27613,
+        "end_to_end_B_ms": 31314
+      }
+    },
+    {
+      "repo": "tokio-rs/tokio",
+      "pr": 8454,
+      "title": "io: reject zero copy buffer sizes",
+      "patch_sha256": "ad391ec23cf32f20a20b5ede1467435c89ec703dbb13b516d09568459a0e07fc",
+      "run": 2,
+      "order": [
+        "B",
+        "A"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 4,
+        "kept": 4,
+        "dropped": 0,
+        "llm_only": true,
+        "triage_tokens": 0,
+        "triage_latency_ms": 0,
+        "jev_usd": 0
+      },
+      "A": {
+        "markdown": "## Findings\n\n- **Severity:** medium\n- **File:** tokio/src/io/util/copy_bidirectional.rs\n- **Line:** 108-116\n- **Issue:** This is a public API behavior change: previously a zero buffer size would presumably cause a silent hang/degenerate behavior (or be otherwise tolerated), but now `copy_bidirectional_with_sizes` panics. Panicking on user-supplied arguments in a library function is a breaking change for any existing caller that (perhaps unknowingly) passed 0, converting a possible logic bug into a hard crash rather than a recoverable `Result` error. Given `copy_bidirectional_impl` already returns `io::Result`, returning an `io::Error` (e.g., `InvalidInput`) would be more idiomatic and non-breaking for async I/O APIs than an assert/panic.\n- **Suggestion:** Consider returning `Err(io::Error::new(io::ErrorKind::InvalidInput, ...))` instead of `assert!`, or clearly document this as an intentional breaking change in the changelog/release notes given it's a new panic condition in a previously non-panicking function.\n\n- **Severity:** low\n- **File:** tokio/src/io/util/copy_bidirectional.rs\n- **Line:** 93-95\n- **Issue:** The added `# Panics` doc section states the condition but doesn't clarify that this validation only applies to `copy_bidirectional_with_sizes`, not `copy_bidirectional()` (which presumably uses fixed/default sizes and is unaffected). This is fine as written, but the doc doesn't mention what value of \"zero\" means in context (i.e., the buffer allocated per direction) which could confuse users about which parameter matters when both fail simultaneously (only `a_to_b_buf_size` is checked/panics first in that case).\n- **Suggestion:** No code change needed; optionally clarify in docs that both sizes are validated and either alone being zero triggers a panic.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "ce417aea507b606f25d0c32d9b037a5c9ad2b52b9be1f9282c1c13df20e3cf0e",
+        "prompt_chars": 3701,
+        "prompt_tokens": 23500,
+        "completion_tokens": 679,
+        "ai_credits": 3.31,
+        "usd": 0.033100000000000004,
+        "latency_ms": 29857,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 1
+        }
+      },
+      "B": {
+        "markdown": "## Findings\n\n- **Severity:** medium\n- **File:** tokio/src/io/util/copy_bidirectional.rs\n- **Line:** 108-116\n- **Issue:** This is a breaking behavioral change: `copy_bidirectional_with_sizes` previously accepted `0` silently (likely no-op or degenerate behavior) and now panics. Any existing caller passing `0` (e.g., defensively or via a computed/config-driven size) will crash instead of erroring gracefully. Panicking in an async I/O utility is also inconsistent with the crate's general preference for returning `io::Result` errors rather than panicking on caller-supplied runtime values, especially when sizes could originate from untrusted/config input.\n- **Suggestion:** Consider returning `io::Result` with an `InvalidInput` error instead of `assert!`, or clearly document this as a documented breaking change in the changelog/release notes since it's a new panic path for previously-accepted input.\n\n- **Severity:** low\n- **File:** tokio/src/io/util/copy_bidirectional.rs\n- **Line:** 93-95\n- **Issue:** The added `# Panics` doc section states buffer sizes must be greater than zero but doesn't clarify whether this is checked at the call boundary only (before any I/O) — callers relying on lazy/deferred evaluation (e.g., wrapping in a spawned task) won't see the panic until first poll, which could be surprising if the function is used with `tokio::spawn` and the panic aborts a task rather than the caller's stack.\n- **Suggestion:** Note in the docs that the panic occurs eagerly/synchronously before any I/O begins, so callers can rely on fail-fast semantics.\n\nNo correctness, concurrency, or resource-management issues found; the new asserts are straightforward preconditions and tests correctly validate both zero-size cases.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "ce417aea507b606f25d0c32d9b037a5c9ad2b52b9be1f9282c1c13df20e3cf0e",
+        "prompt_chars": 3701,
+        "prompt_tokens": 23500,
+        "completion_tokens": 638,
+        "ai_credits": 3.27,
+        "usd": 0.0327,
+        "latency_ms": 27931,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 1
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.033100000000000004,
+        "routed_usd": 0.0327,
+        "saved_usd": 0.0004000000000000045,
+        "saved_pct": 1.208459214501524,
+        "end_to_end_A_ms": 29857,
+        "end_to_end_B_ms": 27931
+      }
+    },
+    {
+      "repo": "rust-lang/rust",
+      "pr": 162552,
+      "title": "RISC-V: Add Zmmul target feature",
+      "patch_sha256": "44a53625f9684dde459440a875d34ac542a7c9571f3c91b6a5b0767b642df9d9",
+      "run": 1,
+      "order": [
+        "A",
+        "B"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 8,
+        "kept": 8,
+        "dropped": 0,
+        "llm_only": true,
+        "triage_tokens": 0,
+        "triage_latency_ms": 0,
+        "jev_usd": 0
+      },
+      "A": {
+        "markdown": "## Findings\n\n- **Severity:** medium\n- **File:** compiler/rustc_target/src/target_features.rs\n- **Line:** `(\"m\", Stable, &[\"zmmul\"])`\n- **Issue:** A stable feature (`m`) now implies an unstable feature (`zmmul`, gated behind `riscv_target_feature`). This mirrors existing patterns elsewhere in the file but could allow stable code enabling `m` (e.g., via `#[target_feature(enable = \"m\")]` or `-C target-feature=+m`) to transitively enable an unstable feature's implied capabilities/cfg without the user opting into the unstable gate directly. Confirm this is intentional and consistent with how other stable→unstable implications are handled (e.g., does `cfg(target_feature = \"zmmul\")` become observable on stable via `m`?).\n- **Suggestion:** Verify test coverage confirms stable code with `+m` doesn't unexpectedly expose `cfg!(target_feature = \"zmmul\")` gated content without the `riscv_target_feature` feature flag, or document why this implication is safe.\n\n- **Severity:** low\n- **File:** library/std_detect/src/detect/os/riscv.rs\n- **Line:** `imply!(m => zmmul);`\n- **Issue:** The runtime detection implication is a one-way inference (if `m` detected, assume `zmmul`), which is architecturally reasonable per the spec (M ⊃ Zmmul) but relies on the underlying OS/HWCAP feature-detection mechanism correctly reporting `m` only when true `M` support exists; if a future kernel/HWPROBE inconsistency reports `m` without full `Zmmul` semantics, this silently over-reports `zmmul`. Low risk given current spec compliance.\n- **Suggestion:** No code change needed; consider a comment referencing the spec relationship for future maintainers (already present in target_features.rs but not here).\n\n- **Severity:** low\n- **File:** library/std_detect/src/detect/arch/riscv.rs\n- **Line:** `@FEATURE: ... zmmul: \"zmmul\";`\n- **Issue:** New feature detection doc table entry lists `No [^ima] [^dep]` for the Rust version column, but the diff doesn't show whether `^ima`/`^dep` footnote definitions already exist and cover this new entry correctly (not visible in the packet).\n- **Suggestion:** Confirm footnotes `[^ima]` and `[^dep]` are defined elsewhere in the file and accurately describe `zmmul`'s detection caveats.\n\nNo correctness, thread-safety, security, or resource-management bugs were found; this is a straightforward, low-risk feature-addition PR.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "613b2b048970e78bd11727bce72b3d5022c0d41696c03105f4fa1f03160ed8c5",
+        "prompt_chars": 6052,
+        "prompt_tokens": 24600,
+        "completion_tokens": 931,
+        "ai_credits": 3.84,
+        "usd": 0.0384,
+        "latency_ms": 30490,
+        "findings": {
+          "total": 3,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 2
+        }
+      },
+      "B": {
+        "markdown": "○ Search (grep)                                                                                  20s\n  │ \"\\[\\^ima\\]|\\[\\^dep\\]\"\n  └ Timed out\n\n/ Search (grep)\n  │ \"ImpliedFeatures|fn walk_implied|implied_features_reachable|assert.*stab\"\n  │ (eval\\workspaces\\rust-lang-rust-pr-162552\\compiler\\rustc_target\\src\\target_features.rs)\n  └ 24 lines found\n\n/ Search (grep)\n  │ \"Stable, &\\[\"z\"\n  │ (eval\\workspaces\\rust-lang-rust-pr-162552\\compiler\\rustc_target\\src\\target_features.rs)\n  └ 30 lines found\n\n/ Search (grep)\n  │ \"feature\\(stdarch\"\n  │ (eval\\workspaces\\rust-lang-rust-pr-162552\\library\\std_detect\\tests\\cpu-detection.rs)\n  └ 1 file found\n\n● Read cpu-detection.rs\n  │ eval\\workspaces\\rust-lang-rust-pr-162552\\library\\std_detect\\tests\\cpu-detection.rs\n  └ L1:20 (20 lines read)\n\nGood — the gate is present, so no issue there. Review complete.\n\n## Findings\n\nNo significant correctness, concurrency, security, or resource-management issues found. The change is well-scoped and consistent across all four locations that needed updating (rustc target feature table, std_detect feature table/detection, rust-analyzer's implication table, and the check-cfg golden test output). One minor observation worth flagging:\n\n- **Severity:** low\n- **File:** compiler/rustc_target/src/target_features.rs\n- **Line:** 692-702 (`(\"m\", Stable, &[\"zmmul\"])`) and 803 (`(\"zmmul\", Unstable(sym::riscv_target_feature), &[])`)\n- **Issue:** This makes a `Stable` feature (`m`) imply an `Unstable` feature (`zmmul`) for the first time in the RISC-V table (compare with `\"a\" => [\"zaamo\",\"zalrsc\"]`, `\"b\" => [...]`, etc., which all imply already-stable features). While this appears intentional per the PR's rationale (M ⊃ Zmmul semantically) and implied features aren't directly user-selectable, it's a slightly unusual pattern that could surprise future maintainers relying on the general assumption that stable features only imply stable ones (e.g., for stabilization tooling or documentation generation that walks the implication graph).\n- **Suggestion:** Add a brief comment near the `zmmul` entry (or in the tidy check for target features) noting explicitly that stable→unstable implication is intentional here, to avoid future \"cleanup\" PRs treating it as an inconsistency.\n\nDoc-table footnote references (`[^ima]`, `[^dep]`) for the new `zmmul` row in `library/std_detect/src/detect/arch/riscv.rs` were verified to resolve correctly to existing footnote definitions, and alphabetical ordering is preserved in all four modified tables/lists.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "613b2b048970e78bd11727bce72b3d5022c0d41696c03105f4fa1f03160ed8c5",
+        "prompt_chars": 6052,
+        "prompt_tokens": 182200,
+        "completion_tokens": 5100,
+        "ai_credits": 13.24,
+        "usd": 0.13240000000000002,
+        "latency_ms": 145769,
+        "findings": {
+          "total": 1,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 1
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.0384,
+        "routed_usd": 0.13240000000000002,
+        "saved_usd": -0.09400000000000003,
+        "saved_pct": -244.79166666666674,
+        "end_to_end_A_ms": 30490,
+        "end_to_end_B_ms": 145769
+      }
+    },
+    {
+      "repo": "rust-lang/rust",
+      "pr": 162552,
+      "title": "RISC-V: Add Zmmul target feature",
+      "patch_sha256": "44a53625f9684dde459440a875d34ac542a7c9571f3c91b6a5b0767b642df9d9",
+      "run": 2,
+      "order": [
+        "B",
+        "A"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 8,
+        "kept": 8,
+        "dropped": 0,
+        "llm_only": true,
+        "triage_tokens": 0,
+        "triage_latency_ms": 0,
+        "jev_usd": 0
+      },
+      "A": {
+        "markdown": "## Findings\n\n- **Severity:** low\n- **File:** library/std_detect/src/detect/arch/riscv.rs\n- **Line:** `@FEATURE: ... zmmul: \"zmmul\"; /// \"Zmmul\" Extension for Integer Multiplication` (inserted between the `m` FEATURE line and its doc comment)\n- **Issue:** The new `zmmul` feature entry is spliced in between the `m` feature's `@FEATURE` macro invocation and its doc comment (`/// \"M\" Extension for Integer Multiplication and Division`), separating a doc comment from the item it documents. This is a formatting/ordering issue that could cause the doc comment to be misattributed or look confusing in generated docs, and disrupts the otherwise alphabetically/logically grouped feature list.\n- **Suggestion:** Move the `m` doc comment directly above/adjacent to its `@FEATURE` line before inserting `zmmul`, or place the new `zmmul` feature+doc block fully after the `m` block so each feature's doc comment stays attached to it.\n\n- **Severity:** low\n- **File:** compiler/rustc_target/src/target_features.rs\n- **Line:** `(\"m\", Stable, &[\"zmmul\"]),`\n- **Issue:** Making stable `\"m\"` imply unstable `\"zmmul\"` is a reasonable semantic move, but the PR doesn't appear to add any test asserting that `#[target_feature(enable = \"m\")]` now also enables `zmmul` in cfg/feature detection at compile time (only runtime std_detect test was updated). Missing compiler-side test coverage could let a future regression slip through unnoticed.\n- **Suggestion:** Add a `tests/ui` or codegen test verifying that enabling `m` implies `zmmul` is visible via `cfg(target_feature = \"zmmul\")` when `m` is enabled, consistent with other implied-feature tests in the same file's test suite.\n\nNo correctness, security, or concurrency issues were found; the change is a straightforward, low-risk target-feature metadata addition consistently propagated across the compiler, std_detect, and rust-analyzer.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "613b2b048970e78bd11727bce72b3d5022c0d41696c03105f4fa1f03160ed8c5",
+        "prompt_chars": 6052,
+        "prompt_tokens": 24600,
+        "completion_tokens": 735,
+        "ai_credits": 3.65,
+        "usd": 0.0365,
+        "latency_ms": 25111,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 2
+        }
+      },
+      "B": {
+        "markdown": "## Findings\n\n- **Severity:** low\n- **File:** compiler/rustc_target/src/target_features.rs\n- **Line:** `(\"m\", Stable, &[\"zmmul\"])`\n- **Issue:** A stable feature (`m`) now implies an unstable feature (`zmmul`, `Unstable(sym::riscv_target_feature)`). This is a stable→unstable implication, which is somewhat unusual; if any downstream logic assumes implied features of a stable feature are always themselves stable (e.g., for cfg/doc generation, feature-gate checks, or `#[target_feature]` implication propagation), this could either leak an unstable feature as implicitly enabled without gating, or cause inconsistent stability diagnostics.\n- **Suggestion:** Verify that the implication mechanism correctly handles enabling an unstable implied feature from a stable one (i.e., confirm no unstable-feature gate is required/bypassed unexpectedly), and add a test exercising `#[target_feature(enable = \"m\")]` to confirm `zmmul` is silently enabled without requiring `riscv_target_feature` unstable flag.\n\n- **Severity:** low\n- **File:** library/std_detect/src/detect/os/riscv.rs\n- **Line:** `imply!(m => zmmul);`\n- **Issue:** This runtime CPU-feature-detection implication is independent from the compiler's static implication table added in `target_features.rs`. If the two implication tables ever diverge (e.g., future extension changes decouple `m` from `zmmul` on real hardware, or vice versa), compile-time and runtime feature implications could silently disagree, leading to code compiled assuming `zmmul` via `m` but runtime detection not confirming it (or vice versa) without any check tying the two together.\n- **Suggestion:** No immediate action required, but consider adding a comment cross-referencing the compiler-side implication in `target_features.rs` (and vice versa) so future edits keep both tables in sync.\n\nNo correctness, security, or concurrency defects were found in this diff; changes are additive metadata/table entries with test/doc updates only.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "613b2b048970e78bd11727bce72b3d5022c0d41696c03105f4fa1f03160ed8c5",
+        "prompt_chars": 6052,
+        "prompt_tokens": 24600,
+        "completion_tokens": 722,
+        "ai_credits": 3.63,
+        "usd": 0.0363,
+        "latency_ms": 27105,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 2
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.0365,
+        "routed_usd": 0.0363,
+        "saved_usd": 0.0001999999999999988,
+        "saved_pct": 0.5479452054794488,
+        "end_to_end_A_ms": 25111,
+        "end_to_end_B_ms": 27105
+      }
+    },
+    {
+      "repo": "kubernetes/kubernetes",
+      "pr": 135486,
+      "title": "Fix default-preemption error when using filter extenders",
+      "patch_sha256": "62644a831448c456bb96d4d9deaefdd4ce5809a034995bd2b68e3b528f7612ae",
+      "run": 1,
+      "order": [
+        "A",
+        "B"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 18,
+        "kept": 18,
+        "dropped": 0,
+        "llm_only": true,
+        "triage_tokens": 10690,
+        "triage_latency_ms": 4665,
+        "jev_usd": 0.00044898000000000003
+      },
+      "A": {
+        "markdown": "● List directory .\n  └ 16 files found\n\n✗ Fetching web content https://raw.githubusercontent.com/kubernetes/kubernetes/master/pkg/scheduler…\n  └ Permission denied and could not request permission from user\n\n✗ Fetching web content https://github.com/kubernetes/kubernetes/blob/master/pkg/scheduler/framework…\n  └ Permission denied and could not request permission from user\n\n## Findings\n\n- **Severity:** medium\n- **File:** pkg/scheduler/framework/preemption/preemption.go\n- **Line:** `if status.IsSuccess() && len(pods) == 0 { status = fwk.NewStatus(fwk.UnschedulableAndUnresolvable, \"No preemption victims found for incoming pod\") }` (DryRunPreemption)\n- **Issue:** The previous code treated \"in-tree filters succeeded but produced zero victims\" as an internal invariant violation (`fwk.Error`), which is a useful defensive check for scheduler bugs unrelated to extenders. The fix only needs to relax this when `ev.hasInterestedPreemptExtender(pod)` is true (handled in the first `if`), but the fallback branch converts *every* zero-victim success case to `UnschedulableAndUnresolvable` unconditionally, even when there are no preemption extenders at all. This silently discards a class of genuine internal-logic bugs (e.g., a future `SelectVictimsOnNode` regression) that would previously have surfaced as an `Error` status, making such regressions much harder to detect.\n- **Suggestion:** Only downgrade to `UnschedulableAndUnresolvable` when extenders are involved (e.g., `len(ev.Handler.Extenders()) > 0`), and keep the original `Error`/assertion for the no-extender case, or add explicit logging distinguishing the two situations.\n\n- **Severity:** low\n- **File:** pkg/scheduler/framework/preemption/preemption.go\n- **Line:** `nodeNameToVictims, err := extender.ProcessPreemption(...)` / validation loop `for nodeName, victims := range nodeNameToVictims { ... }`\n- **Issue:** Validation only inspects keys present in the extender's returned map. A non-ignorable extender that wants to reject a *non-empty* candidate can simply omit its key instead of returning an empty/nil victims entry, bypassing the \"non-ignorable extenders must report or error\" safeguard entirely and silently shrinking the candidate set with no log message (the final drop-log only fires for nodes still present in `victimsMap` with empty victims, not for omitted keys). This weakens observability for the new \"omit to reject\" contract introduced by this PR's docs.\n- **Suggestion:** Diff the extender's returned keys against the input keys and log (at V(2)) any nodes that were silently dropped by omission, regardless of `IsIgnorable()`, so operators can distinguish \"explicit empty victims\" rejections from \"silent omission\" rejections.\n\n- **Severity:** low\n- **File:** pkg/scheduler/framework/preemption/preemption.go\n- **Line:** `func (ev *Evaluator) hasInterestedPreemptExtender(pod *v1.Pod) bool { ... }` usage in `DryRunPreemption`\n- **Issue:** `hasInterestedPreemptExtender` iterates all extenders and is invoked once per node inside `DryRunPreemption`'s per-node (parallelized) callback, recomputing the same pod-independent-per-node result on every node in the cluster. For clusters with many nodes and several extenders this is unnecessary repeated work on a hot path.\n- **Suggestion:** Compute `hasInterestedPreemptExtender(pod)` once before the parallel loop and capture it in a closure variable, rather than recomputing it per node.\n\nNo thread-safety, resource-leak, or unsafe-deserialization issues were found in the diff; the extender-victims placeholder logic and updated test coverage otherwise look correct and match the documented contract.\n\nLLM_USAGE: prompt=6800 completion=1450\n\n",
+        "prompt_sha256": "67a12fcd315e7c47a062cffa44c784ef0b5cd9211c7dd240a9c0ee769743d3e0",
+        "prompt_chars": 17700,
+        "prompt_tokens": 123800,
+        "completion_tokens": 10300,
+        "ai_credits": 16.88,
+        "usd": 0.1688,
+        "latency_ms": 143985,
+        "findings": {
+          "total": 3,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 2
+        }
+      },
+      "B": {
+        "markdown": "● List directory .\n  └ 16 files found\n\n✗ Fetching web content https://raw.githubusercontent.com/kubernetes/kubernetes/master/pkg/scheduler…\n  └ Permission denied and could not request permission from user\n\n✗ Fetching web content https://github.com/kubernetes/kubernetes/blob/master/pkg/scheduler/framework…\n  └ Permission denied and could not request permission from user\n\n## Findings\n\n- **Severity:** high\n- **File:** staging/src/k8s.io/kube-scheduler/framework/extender.go / staging/src/k8s.io/kube-scheduler/extender/v1/types.go\n- **Line:** `pkg/scheduler/framework/preemption/preemption.go` lines ~249-260 (emptyInputNodes tracking) and the `ProcessPreemption` doc comments\n- **Issue:** This changes an established external API contract: `ProcessPreemption` can now be invoked with `nodeNameToVictims` entries that have an empty/nil `Pods` list (placeholders for extender-managed resources). Prior to this PR, every node passed to a preemption extender was guaranteed to have at least one victim pod. Third-party HTTP extenders written against the old contract may assume `Victims.Pods` is non-empty (e.g. indexing `Pods[0]`, computing `len(Pods)-1`, or relying on non-nil for JSON round-tripping) and could panic, mis-serialize (`Pods: nil` marshals as JSON `null`), or otherwise misbehave when upgraded schedulers start sending placeholder nodes, with no feature gate or version negotiation to opt in.\n- **Suggestion:** Consider gating this behavior behind a feature flag, or only sending placeholder nodes to extenders that explicitly advertise support for the new semantics (e.g. an extender config field), and add explicit guidance/migration notes in the extender docs for existing implementations.\n\n- **Severity:** medium\n- **File:** pkg/scheduler/framework/preemption/preemption.go\n- **Line:** `status = fwk.NewStatus(fwk.UnschedulableAndUnresolvable, \"No preemption victims found for incoming pod\")` (replacing the old `fmt.Errorf(\"expected at least one victim pod on node %q\", nodeInfo.Node().Name)`)\n- **Issue:** The new status message drops the node name that was present in the previous error text, reducing diagnosability when troubleshooting why a particular node was not selected as a preemption candidate (especially if callers log/aggregate this message directly rather than solely keying by node in a map).\n- **Suggestion:** Include the node name in the new status message, e.g. `fmt.Sprintf(\"No preemption victims found for incoming pod on node %q\", nodeInfo.Node().Name)`.\n\n- **Severity:** medium\n- **File:** pkg/scheduler/framework/preemption/preemption.go\n- **Line:** `if status.IsSuccess() && (len(pods) != 0 || ev.hasInterestedPreemptExtender(pod)) {` and the new `hasInterestedPreemptExtender` function\n- **Issue:** `hasInterestedPreemptExtender` iterates all registered extenders on every call, and this call happens once per candidate node inside the (typically parallelized, per-node) DryRun loop. It also causes every node where in-tree filters trivially succeed with zero victims to be added as a placeholder candidate whenever any preemption-supporting extender is interested in the pod — inflating the candidate set forwarded via HTTP to `ProcessPreemption` in clusters with many such nodes, increasing per-preemption-cycle HTTP payload size and latency.\n- **Suggestion:** Compute `hasInterestedPreemptExtender(pod)` once before the per-node loop and pass the boolean in, rather than recomputing per node; consider bounding/logging the placeholder candidate count if it could grow large in practice.\n\n- **Severity:** low\n- **File:** pkg/scheduler/framework/preemption/preemption.go\n- **Line:** `emptyInputNodes := sets.New[string]()` loop inside `callExtenders`\n- **Issue:** For every interested/preemption-supporting extender, the code does a full scan of `victimsMap` to rebuild `emptyInputNodes`. With many extenders and many candidate nodes this is O(extenders × nodes), which is unlikely to be a real bottleneck given typical extender counts, but is worth noting given the placeholder-candidate growth described above.\n- **Suggestion:** No immediate action required; monitor if extender/node counts are large in practice.\n\nNo critical correctness, security, or concurrency-safety bugs were found in the reviewed hunks; the map-deletion-during-range pattern and mutex usage appear preserved from prior behavior.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "67a12fcd315e7c47a062cffa44c784ef0b5cd9211c7dd240a9c0ee769743d3e0",
+        "prompt_chars": 17700,
+        "prompt_tokens": 126100,
+        "completion_tokens": 12300,
+        "ai_credits": 19.14,
+        "usd": 0.19140000000000001,
+        "latency_ms": 165318,
+        "findings": {
+          "total": 4,
+          "critical": 0,
+          "high": 1,
+          "medium": 2,
+          "low": 1
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.1688,
+        "routed_usd": 0.19184898,
+        "saved_usd": -0.023048979999999997,
+        "saved_pct": -13.654609004739335,
+        "end_to_end_A_ms": 143985,
+        "end_to_end_B_ms": 169983
+      }
+    },
+    {
+      "repo": "kubernetes/kubernetes",
+      "pr": 135486,
+      "title": "Fix default-preemption error when using filter extenders",
+      "patch_sha256": "62644a831448c456bb96d4d9deaefdd4ce5809a034995bd2b68e3b528f7612ae",
+      "run": 2,
+      "order": [
+        "B",
+        "A"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 18,
+        "kept": 18,
+        "dropped": 0,
+        "llm_only": true,
+        "triage_tokens": 0,
+        "triage_latency_ms": 1,
+        "jev_usd": 0
+      },
+      "A": {
+        "markdown": "✗ Read preemption.go\n  │ pkg\\scheduler\\framework\\preemption\\preemption.go\n  └ Path does not exist\n\n✗ Fetching web content https://raw.githubusercontent.com/kubernetes/kubernetes/master/pkg/scheduler…\n  └ Permission denied and could not request permission from user\n\n## Findings\n\n- **Severity:** medium\n- **File:** staging/src/k8s.io/kube-scheduler/framework/extender.go / staging/src/k8s.io/kube-scheduler/extender/v1/types.go\n- **Line:** `ProcessPreemption` doc additions (extender.go ~63-75) and `ExtenderPreemptionArgs` doc (types.go ~38-48)\n- **Issue:** This changes an established public API contract: `nodeNameToVictims`/`ExtenderPreemptionArgs.NodeNameToVictims` can now contain entries with an *empty* victim list (placeholders), whereas previously every entry represented a real, non-empty victim set. Third-party `ProcessPreemption` implementations written against the old assumption (e.g. code that indexes `Victims.Pods[0]`, or treats \"present in map\" as \"has victims to score/remove\") can misbehave or panic when they receive these placeholder entries. The change is documented only in godoc comments, not gated behind any capability flag/version negotiation, so all existing external extenders are silently affected as soon as the scheduler upgrades.\n- **Suggestion:** Call this out prominently in the release notes/KEP as a behavior change for extender authors, and consider guarding placeholder-node inclusion behind an explicit extender capability (e.g. only send placeholders to extenders that declare they understand them), or at minimum add a runtime warning/metric when a non-preemption-aware extender receives placeholder nodes.\n\n- **Severity:** low\n- **File:** pkg/scheduler/framework/preemption/preemption.go\n- **Line:** `hasInterestedPreemptExtender` (new function) and its call site inside `DryRunPreemption`'s per-node loop (`~line 505`)\n- **Issue:** `ev.hasInterestedPreemptExtender(pod)` iterates over all extenders and calls `IsInterested(pod)` for every candidate node evaluated in the parallelized `DryRunPreemption` node loop. Since the result is identical for every node in a given preemption cycle (it only depends on `pod` and the static extender list), recomputing it per node is redundant work repeated across the (potentially large) node set and executed for each parallel worker.\n- **Suggestion:** Compute `hasInterestedPreemptExtender(pod)` once before entering the parallelized node loop and capture the boolean in the closure, avoiding repeated extender-list iteration per node.\n\n- **Severity:** low\n- **File:** pkg/scheduler/framework/preemption/preemption.go\n- **Line:** placeholder \"continue\" branch inside the `nodeNameToVictims` validation loop (`~line 269-275`)\n- **Issue:** When a node was already a placeholder (`emptyInputNodes.Has(nodeName)`) and the current extender returns it with still-empty victims, the code `continue`s before reaching the existing \"Ignored node...\" log line. This silently skips observability for placeholder nodes that no extender is adding victims to, making it harder to diagnose why a node was eventually dropped from candidates.\n- **Suggestion:** Add a `logger.V(4)`/debug log in the placeholder-keep branch noting that the extender left the placeholder unchanged, to preserve traceability without changing behavior.\n\n- **Severity:** low\n- **File:** pkg/scheduler/framework/preemption/preemption.go\n- **Line:** `status = fwk.NewStatus(fwk.UnschedulableAndUnresolvable, \"No preemption victims found for incoming pod\")` (~line 529)\n- **Issue:** The replacement status message drops the previous per-node context (`nodeInfo.Node().Name`) that was present in the old `fmt.Errorf(\"expected at least one victim pod on node %q\", ...)`. Combined with aggregation across many parallel node evaluations, this makes it harder to tell which node(s) produced the \"no victims\" outcome when debugging preemption decisions.\n- **Suggestion:** Include the node name in the new status message (e.g. `fmt.Sprintf(\"no preemption victims found for incoming pod on node %q\", nodeInfo.Node().Name)`) to retain diagnosability while keeping the corrected non-error status code.\n\nNo critical/high-severity correctness, concurrency, or resource-leak issues were found in the supplied diff; the core logic changes (placeholder victim handling in `callExtenders`, `DryRunPreemption` no-victim relaxation) appear internally consistent with the added tests.\n\nLLM_USAGE: prompt=6800 completion=1450\n\n",
+        "prompt_sha256": "67a12fcd315e7c47a062cffa44c784ef0b5cd9211c7dd240a9c0ee769743d3e0",
+        "prompt_chars": 17700,
+        "prompt_tokens": 93100,
+        "completion_tokens": 11000,
+        "ai_credits": 16.95,
+        "usd": 0.16949999999999998,
+        "latency_ms": 145072,
+        "findings": {
+          "total": 4,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 3
+        }
+      },
+      "B": {
+        "markdown": "● List directory .\n  └ 16 files found\n\n## Findings\n\n- **Severity:** medium\n- **File:** pkg/scheduler/framework/preemption/preemption.go\n- **Line:** `if status.IsSuccess() && (len(pods) != 0 || ev.hasInterestedPreemptExtender(pod)) {` (DryRunPreemption, ~line 500) and the new `hasInterestedPreemptExtender` helper\n- **Issue:** `hasInterestedPreemptExtender(pod)` re-scans `ev.Handler.Extenders()` and calls `IsInterested`/`SupportsPreemption` for *every node* evaluated by `DryRunPreemption`. Since DryRunPreemption evaluates nodes in parallel (evidenced by the `mu.Lock()` right below), this turns a constant, pod-scoped check into O(nodes × extenders) redundant work per preemption cycle, and does so concurrently from many goroutines. For clusters with many nodes and several extenders this adds needless overhead to every preemption attempt, and if any extender's `IsInterested`/`SupportsPreemption` implementation is not side-effect-free this now runs it concurrently rather than once.\n- **Suggestion:** Compute `hasInterestedPreemptExtender(pod)` once before the parallel per-node loop in `DryRunPreemption` and capture the boolean via closure, rather than recomputing it inside the per-node callback.\n\n- **Severity:** low\n- **File:** pkg/scheduler/framework/preemption/preemption.go\n- **Line:** `status = fwk.NewStatus(fwk.UnschedulableAndUnresolvable, \"No preemption victims found for incoming pod\")`\n- **Issue:** The replaced message drops the node name that the old error (`\"expected at least one victim pod on node %q\"`) included. Since this status is produced per-node inside a parallel dry-run, losing the node identifier makes it harder to diagnose which specific node had no victims when troubleshooting scheduler logs/events, a minor debuggability regression versus the previous message.\n- **Suggestion:** Include the node name in the new status message, e.g. `fmt.Sprintf(\"no preemption victims found for incoming pod on node %q\", nodeInfo.Node().Name)`.\n\n- **Severity:** low\n- **File:** staging/src/k8s.io/kube-scheduler/extender/v1/types.go / staging/src/k8s.io/kube-scheduler/framework/extender.go\n- **Line:** new `ExtenderPreemptionArgs.NodeNameToVictims` doc comment; `Extender.ProcessPreemption` doc comment\n- **Issue:** The new placeholder/empty-victims contract is documented only against `NodeNameToVictims` (and the generic `ProcessPreemption` doc), but `ExtenderPreemptionArgs.NodeNameToMetaVictims` (used when `NodeCacheCapable == true`) has no equivalent note, even though the test suite exercises a `NodeCacheCapable: true` extender (`OccupiedNodePredicateExtender` case). External extender authors relying on `NodeNameToMetaVictims` won't know whether they can also receive/return empty-victim placeholders through that path.\n- **Suggestion:** Add the same placeholder-semantics note to the `NodeNameToMetaVictims` field doc (or clarify explicitly that the placeholder behavior does/doesn't extend to the meta-victims map for `NodeCacheCapable` extenders).\n\nNo critical or high-severity correctness, concurrency, or security issues were found in the supplied diff; the empty-victim placeholder/rejection logic in `callExtenders` and the associated tests appear internally consistent with the documented contract.\n\nLLM_USAGE: prompt=6800 completion=1450\n\n",
+        "prompt_sha256": "67a12fcd315e7c47a062cffa44c784ef0b5cd9211c7dd240a9c0ee769743d3e0",
+        "prompt_chars": 17700,
+        "prompt_tokens": 60500,
+        "completion_tokens": 11000,
+        "ai_credits": 16.01,
+        "usd": 0.16010000000000002,
+        "latency_ms": 142180,
+        "findings": {
+          "total": 3,
+          "critical": 0,
+          "high": 0,
+          "medium": 1,
+          "low": 2
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.16949999999999998,
+        "routed_usd": 0.16010000000000002,
+        "saved_usd": 0.009399999999999964,
+        "saved_pct": 5.545722713864286,
+        "end_to_end_A_ms": 145072,
+        "end_to_end_B_ms": 142181
+      }
+    },
+    {
+      "repo": "curl/curl",
+      "pr": 22947,
+      "title": "glob: reduce allocations for URLs without globbing",
+      "patch_sha256": "8f37c66b9e8584a9601692a9848a16f2345953f5a4e447e9063e291e129b44ce",
+      "run": 1,
+      "order": [
+        "A",
+        "B"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 10,
+        "kept": 9,
+        "dropped": 1,
+        "llm_only": false,
+        "triage_tokens": 4612,
+        "triage_latency_ms": 3550,
+        "jev_usd": 0.000193704
+      },
+      "A": {
+        "markdown": "✗ Fetching web content https://raw.githubusercontent.com/curl/curl/master/src/tool_urlglob.c · url:…\n  └ Permission denied and could not request permission from user\n\n✗ Fetching web content https://raw.githubusercontent.com/curl/curl/master/src/tool_urlglob.h · url:…\n  └ Permission denied and could not request permission from user\n\n● Check if curl source is present locally (shell)\n  │ Test-Path C:\\Users\\choudharysh\\prune-review\\src\\tool_urlglob.c; Get-ChildItem\n  │ C:\\Users\\choudharysh\\prune-review -Recurse -Filter tool_urlglob.c -ErrorAction SilentlyContinue\n  └ 8 lines…\n\nRepo is available locally. Let me inspect the relevant source files to verify struct usage and downstream consumers.\n\n● Read tool_urlglob.c\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c\n  └ 1 line read\n\n● Read tool_urlglob.h\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.h\n  └ 89 lines read\n\n/ Search (grep)\n  │ \"glob_match_url|glob->pnum|glob->pattern|literal|beenhere\" \"\n  │ (eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c)\n  └ 1 file found\n\n/ Search (grep)\n  │ \"glob_match_url|pnum|literal|beenhere\" (eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c)\n  └ 1 file found\n\n● Read tool_urlglob.c\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c\n  └ L550:700 (151 lines read)\n\n✗ Search (grep)\n  │ \"curlx_dyn_init|curlx_dyn_free\" (eval\\workspaces\\curl-curl-pr-22947\\lib\\dynbuf.c)\n  └ Search paths do not exist:\n    C:\\Users\\choudharysh\\prune-review\\eval\\workspaces\\curl-curl-pr-22947\\lib\\dynbuf.c\n\n/ Search (grep)\n  │ \"curlx_dyn_init|curlx_dyn_free\" (eval\\workspaces\\curl-curl-pr-22947)\n  └ 2 files found\n\n● Find dynbuf source file (shell)\n  │ Get-ChildItem C:\\Users\\choudharysh\\prune-review\\eval\\workspaces\\curl-curl-pr-22947 -Recurse\n  │ -Filter \"*dynbuf*\"\n  └ 1 line…\n\n● Read tool_urlglob.c\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c\n  └ L700:780 (81 lines read)\n\n/ Search (grep)\n  │ \"glob_inuse|glob_is_literal|glob_next_url|glob_cleanup\"\n  │ (eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c)\n  └ 1 file found\n\n● Read tool_operate.c\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c\n  └ L1220:1330 (111 lines read)\n\n● Read tool_urlglob.c\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c\n  └ L380:550 (171 lines read)\n\n/ Search (grep)\n  │ \"state->uploadfile|state->upidx|setup_input_file|state->upnum\"\n  │ (eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c)\n  └ 1 file found\n\n/ Search (grep)\n  │ \"state->uploadfile|state->upidx|setup_input_file|state->upnum\"\n  │ (eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c)\n  └ 17 lines found\n\n## Findings\n\n**1. Severity:** low\n**File:** src/tool_urlglob.c\n**Line:** 636-638 (`glob_next_url`)\n**Issue:** The new invariant \"never call `glob_next_url` on a literal glob\" is enforced only via `DEBUGASSERT(!glob->literal)`, which is compiled out in release builds. If any current or future caller forgets the `!glob_is_literal()` guard added in `tool_operate.c` (e.g. a new call site, or a refactor that reorders the `&&` conditions), the function will silently proceed with `pattern == NULL` and `pnum == 0`, producing `*globbed = curlx_strdup(\"\")` — an empty string — instead of the real URL/filename, with no error returned. This is a silent-data-corruption risk rather than a crash, so it could go unnoticed in production.\n**Suggestion:** In release builds also have `glob_next_url` explicitly check `glob->literal` and return `CURLE_FAILED_INIT` (or similar) instead of relying solely on the debug assertion.\n\n**2. Severity:** low\n**File:** src/tool_urlglob.c\n**Line:** 610-627 (`glob_cleanup`)\n**Issue:** `curlx_dyn_free(&glob->buf)` is only invoked inside `if(glob->pattern)`. For a literal glob, `glob->pattern` is always `NULL` (the parsing/allocation path is skipped entirely in `glob_url`), so `dyn_free` is skipped. Currently this is harmless because `glob->buf` is never written to in the literal path (`curlx_dyn_init` doesn't allocate memory), but it creates a fragile coupling between two independent resources (`pattern` and `buf`) that previously always tracked together (since `pattern` was unconditionally allocated). A later change that starts using `buf` for literal globs would silently leak.\n**Suggestion:** Call `curlx_dyn_free(&glob->buf)` unconditionally at the top of `glob_cleanup`, independent of whether `glob->pattern` is set.\n\nNo correctness, thread-safety, or security issues were found in the core logic change. The behavior-preservation analysis checks out: `glob_inuse()` returning `TRUE` for literal URLs correctly mirrors the old behavior (where `palloc` was always non-zero after a successful `glob_url` call, even for non-glob input), and the `pnum == 0` guard in `glob_find_name`/numbered-ref lookups in `glob_match_url` safely avoids dereferencing the `NULL` `pattern` array. The added `test2415` correctly validates the named-glob-reference-against-literal-URL error path.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "1c688f0a9ca1f1b2bf3d823d28070245420189ebae4daf97a3ed799fa7e936d7",
+        "prompt_chars": 5664,
+        "prompt_tokens": 470900,
+        "completion_tokens": 13400,
+        "ai_credits": 29.43,
+        "usd": 0.2943,
+        "latency_ms": 281748,
+        "findings": {
+          "total": 0,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 0
+        }
+      },
+      "B": {
+        "markdown": "/ Search (grep)                                                                                  10s\n  │ \"glob_next_url|glob_inuse|glob_is_literal\"\n  └ 17 files found\n\n/ Search (grep)\n  │ \"glob_next_url|glob_inuse|glob_is_literal|upidx|urlidx\"\n  │ (eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c)\n  └ 1 file found\n\n/ Search (grep)\n  │ \"glob_next_url|glob_inuse|glob_is_literal|upidx|urlidx\"\n  │ (eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c)\n  └ 1 file found\n\n● Read tool_operate.c\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c\n  └ L1200:1340 (141 lines read)\n\n/ Search (grep)\n  │ \"upidx|upnum|setup_input_file\"\" (eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c)\n  └ 7 lines found\n\nSince `upnum` is 1 for literal case, `upidx` only reaches 0 before wraparound at line 1370 (`upidx >= upnum` resets to 0), so `setup_input_file`'s `!state->upidx` branch always fires correctly for the single literal iteration — consistent with prior non-glob behavior. This confirms no functional break there.\n\nNow let me check `glob_cleanup` and the `beenhere`/`literal` reset, and verify test2415 exists.\n\n● Read tool_urlglob.c\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c\n  └ L570:660 (91 lines read)\n\n/ Search (grep)\n  │ \"void curlx_dyn_init|curlx_dyn_free\\(\" (eval\\workspaces\\curl-curl-pr-22947)\n  └ 4 lines found\n\n/ Search (grep)\n  │ \"curlx_dyn_init\\(struct dynbuf\" (eval\\workspaces\\curl-curl-pr-22947)\n  └ No matches found\n\n/ Search (grep)\n  │ \"void Curl_dyn_init|dyn_init\\(struct dynbuf|^void.*dyn_init\"\n  │ (eval\\workspaces\\curl-curl-pr-22947)\n  └ No matches found\n\n/ Search (glob)\n  │ \"**/dynbuf.*\" in eval\\workspaces\\curl-curl-pr-22947\n  └ No matches found\n\n/ Search (glob)\n  │ \"**/test2415\" in eval\\workspaces\\curl-curl-pr-22947\n  └ 1 file found\n\nGood, test file exists (not shown in diff packet, likely just excluded from evidence). Now checking `glob_match_url` and other callers of `glob_inuse`/pattern access for literal-related null derefs, plus double-checking header consistency.\n\n● Read tool_urlglob.h\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.h\n  └ 89 lines read\n\n● Read tool_urlglob.c\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c\n  └ L690:815 (126 lines read)\n\n/ Search (grep)\n  │ \"glob_find_name\" (eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c)\n  └ 39 lines found\n\nGood, `pnum` guards the loop safely (0 for literal). No null-deref risk there. Now let's finalize findings — the main real issue is the `glob_cleanup` coupling of `curlx_dyn_free(&glob->buf)` to `glob->pattern` being non-NULL, which is fragile even if currently harmless.\n\n● Read tool_urlglob.c\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c\n  └ L608:632 (24 lines read)\n\nThis confirms the fragility I suspected. Now I have enough to write the final findings.\n\n## Findings\n\n- **Severity:** low\n- **File:** src/tool_urlglob.c\n- **Line:** 608-631 (`glob_cleanup`), interacting with the new early-return at 587-592 in `glob_url`\n- **Issue:** `glob_url()` unconditionally calls `curlx_dyn_init(&glob->buf, ...)` before the new literal short-circuit, but `glob_cleanup()` only calls `curlx_dyn_free(&glob->buf)` inside the `if(glob->pattern)` block. For the new literal path, `glob->pattern` is always NULL, so `glob->buf` is initialized but never freed on cleanup. Currently harmless because `buf` is never grown for a literal glob (no code path writes to it), but the cleanup logic is now coupled to an unrelated field (`pattern`) rather than to whether `buf` was actually initialized, making future changes (e.g., a code path that uses `glob->buf` while `literal` is set) prone to silently leaking.\n- **Suggestion:** Free `glob->buf` unconditionally in `glob_cleanup()` (dyn_free on an unused/empty dynbuf is a no-op), rather than gating it on `glob->pattern`.\n\n- **Severity:** low\n- **File:** src/tool_urlglob.c\n- **Line:** 636-639 (`DEBUGASSERT(!glob->literal);` in `glob_next_url`)\n- **Issue:** The literal-mode contract (never call `glob_next_url` when `glob->literal` is set) is enforced only via `DEBUGASSERT`, which compiles out in release builds. If a future caller of `glob_next_url` misses the `!glob_is_literal()` guard (as `tool_operate.c` currently applies at its two call sites), a release build would dereference `glob->pattern`, which is NULL for a literal glob, causing a crash instead of a safe/defensive failure.\n- **Suggestion:** Add a release-safe guard, e.g. `if(glob->literal) return CURLE_FAILED_INIT;` (or similarly return an error) in addition to/instead of the debug-only assert.\n\nNo correctness, ownership, or thread-safety issues were found in `tool_operate.c`'s updated call sites — the `!glob_is_literal()` guards correctly fall through to the pre-existing single-URL/single-file assignment paths, and `upnum`/`urlnum` being forced to 1 for literal globs keeps the `upidx`/`urlidx` loop bounds consistent with prior non-glob behavior. `tests/data/Makefile.am`'s new `test2415` entry corresponds to an existing test file, so no missing-test build breakage.\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "420389b53e22c285339ad4de4d45cd98a423fef8932c4e6f17c29da8445594b9",
+        "prompt_chars": 4906,
+        "prompt_tokens": 510500,
+        "completion_tokens": 7800,
+        "ai_credits": 23.87,
+        "usd": 0.23870000000000002,
+        "latency_ms": 250393,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 2
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.2943,
+        "routed_usd": 0.238893704,
+        "saved_usd": 0.055406295999999994,
+        "saved_pct": 18.826468229697586,
+        "end_to_end_A_ms": 281748,
+        "end_to_end_B_ms": 253943
+      }
+    },
+    {
+      "repo": "curl/curl",
+      "pr": 22947,
+      "title": "glob: reduce allocations for URLs without globbing",
+      "patch_sha256": "8f37c66b9e8584a9601692a9848a16f2345953f5a4e447e9063e291e129b44ce",
+      "run": 2,
+      "order": [
+        "B",
+        "A"
+      ],
+      "model": "claude-sonnet-5",
+      "jev_model": "jev-1.13.0",
+      "routing": {
+        "hunks": 10,
+        "kept": 9,
+        "dropped": 1,
+        "llm_only": false,
+        "triage_tokens": 0,
+        "triage_latency_ms": 0,
+        "jev_usd": 0
+      },
+      "A": {
+        "markdown": "/ Search (grep)\n  │ \"glob_next_url|glob_inuse|glob_is_literal\"\n  └ 83 lines found\n\n● Read tool_urlglob.c\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c\n  └ L700:780 (81 lines read)\n\n/ Search (grep)\n  │ \"glob_find_name\" (eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c)\n  └ 4 lines found\n\nThat confirms glob_find_name safely iterates `pnum` (0 for literal), so no null-deref there. This matches the expected behavior shown in test2415 (error 43, not a crash). Now let me check `select_url_out_name`/upidx/urlidx usage in tool_operate.c for state consistency with `urlnum=1`.\n\n/ Search (grep)\n  │ \"upidx|urlidx|urlnum|upnum\" (eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c)\n  └ 15 lines found\n\nGood, this all looks consistent (urlnum=1 when literal, matching prior behavior of single-URL non-glob). This confirms correctness. Now finalizing findings.\n\n## Findings\n\n- **Severity:** low\n- **File:** src/tool_urlglob.c\n- **Line:** 636-639 (`DEBUGASSERT(!glob->literal);` in `glob_next_url`)\n- **Issue:** The new invariant \"callers must check `glob_is_literal()` before calling `glob_next_url`\" is enforced only via `DEBUGASSERT`, which is compiled out in release builds. Only two call sites were updated (`tool_operate.c` lines ~1245 and ~1309); any future or third-party caller of `glob_next_url()` that only checks `glob_inuse()` (now true for literal globs too) will silently proceed past the assert in release builds, hit `curlx_dyn_reset`, and then fall into the pattern-processing loop with `glob->pattern == NULL` / `glob->pnum == 0`, likely returning an empty/garbage globbed string rather than a clear error.\n- **Suggestion:** Have `glob_next_url` return `CURLE_FAILED_INIT` (or similar) when `glob->literal` is set, in addition to the debug assert, so misuse fails safely in release builds too, and audit all call sites of `glob_inuse()` for the same gating requirement.\n\n- **Severity:** low\n- **File:** src/tool_urlglob.c\n- **Line:** 544-547 (`glob_inuse`)\n- **Issue:** `glob_inuse()`'s contract silently changed from \"a pattern was parsed\" to \"either a pattern was parsed or the URL is a literal placeholder.\" Existing callers such as `glob_match_url` (`glob_inuse(glob) && *filename == '#' && ISDIGIT(...)`, and `glob_inuse(glob)`/`glob_inuse(glob2)` guarding `glob_find_name`) still work correctly by coincidence, because `pnum`/`pattern` are zero/NULL for literal globs, so the lookups simply find nothing — but this correctness now depends on that zeroed state being preserved everywhere `palloc == 0 && literal == TRUE`, which isn't obvious from the code and isn't documented.\n- **Suggestion:** Add a comment on `glob_inuse()` (and in the header) explicitly stating that `TRUE` no longer implies a parsed pattern array, and that literal globs have `pattern == NULL`/`pnum == 0`, to prevent a future change from breaking that implicit assumption.\n\nNo memory-safety, ownership, or thread-safety defects were found in the reviewed diff; `glob_cleanup` correctly resets `literal`/`beenhere` and skips freeing the never-allocated `pattern` array, and the new `test2415` correctly validates the named-glob-reference-against-literal-URL error path (error 43).\n\nLLM_USAGE: prompt=0 completion=0\n\n",
+        "prompt_sha256": "1c688f0a9ca1f1b2bf3d823d28070245420189ebae4daf97a3ed799fa7e936d7",
+        "prompt_chars": 5664,
+        "prompt_tokens": 147100,
+        "completion_tokens": 3200,
+        "ai_credits": 10.3,
+        "usd": 0.10300000000000001,
+        "latency_ms": 85080,
+        "findings": {
+          "total": 2,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 2
+        }
+      },
+      "B": {
+        "markdown": "✗ Fetching web content https://raw.githubusercontent.com/curl/curl/master/src/tool_operate.c · url:…\n  └ Permission denied and could not request permission from user\n\n/ Search (glob)\n  │ \"**/tool_operate.c\"\n  └ 1 file found\n\nRepo is present locally. Let me inspect the relevant functions.\n\n/ Search (grep)\n  │ \"upidx|urlidx|uploadfile|numurls|state->urlnum|glob_inuse|glob_next_url\"\n  │ (.\\eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c)\n  └ 1 file found\n\n● Read tool_operate.c\n  │ .\\eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c\n  └ L1180:1340 (161 lines read)\n\n/ Search (grep)\n  │ \"upidx|urlidx|state->uploadfile|state->upnum|state->urlnum\"\n  │ (.\\eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c)\n  └ 1 file found\n\n/ Search (grep)\n  │ \"upidx\" (eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c)\n  └ 4 lines found\n\n● Read tool_operate.c\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c\n  └ L1340:1500 (160 lines read)\n\n/ Search (grep)\n  │ \"inglob\\.|urlglob\\.|\\.pnum|\\.palloc|glob->size\" (eval\\workspaces\\curl-curl-pr-22947\\src)\n  └ 5 lines found\n\n● Read tool_operate.c\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c\n  └ L1055:1085 (31 lines read)\n\n/ Search (grep)\n  │ \"glob_match_url\" (eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c)\n  └ 1 line found\n\n● Read tool_urlglob.c\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c\n  └ L700:800 (100 lines read)\n\n/ Search (grep)\n  │ \"glob_find_name\" (eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c)\n  └ 54 lines found\n\n/ Search (grep)\n  │ \"glob_next_url\" (eval\\workspaces\\curl-curl-pr-22947\\src)\n  └ 4 lines found\n\n● Read tool_urlglob.c\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c\n  └ L575:632 (57 lines read)\n\n✗ Search (grep)\n  │ \"void curlx_dyn_init\" (eval\\workspaces\\curl-curl-pr-22947\\lib\\curlx\\dynbuf.c)\n  └ Search paths do not exist:\n    C:\\Users\\choudharysh\\prune-review\\eval\\workspaces\\curl-curl-pr-22947\\lib\\curlx\\dynbuf.c\n\n/ Search (grep)\n  │ \"curlx_dyn_init\" (eval\\workspaces\\curl-curl-pr-22947)\n  └ 2 files found\n\n/ Search (glob)\n  │ \"**/dynbuf.c\"\n  └ No matches found\n\n● List directory eval\\workspaces\\curl-curl-pr-22947\n  └ 4 files found\n\n/ Search (grep)\n  │ \"upnum|urlnum\" (eval\\workspaces\\curl-curl-pr-22947\\src\\tool_operate.c)\n  └ 11 lines found\n\n● Read tool_urlglob.c\n  │ eval\\workspaces\\curl-curl-pr-22947\\src\\tool_urlglob.c\n  └ L633:680 (48 lines read)\n\n## Findings\n\n- **Severity:** low\n- **File:** src/tool_urlglob.c\n- **Line:** `glob_cleanup()` (~line 610-627), specifically `if(glob->pattern) { ... curlx_dyn_free(&glob->buf); }`\n- **Issue:** Prior to this patch, `glob->buf` was always initialized (`curlx_dyn_init`) *and* `glob->pattern` was always allocated together, so gating `curlx_dyn_free(&glob->buf)` inside `if(glob->pattern)` was safe. This patch introduces a new state (`glob->literal == TRUE`) where `curlx_dyn_init(&glob->buf, ...)` runs in `glob_url()` but `glob->pattern` is never allocated (early return). `glob_cleanup()` will now skip `curlx_dyn_free(&glob->buf)` for every literal glob. Currently this is harmless only because `glob_next_url()` (the sole writer to `glob->buf`) is never invoked on a literal glob due to the `!glob_is_literal()` guards in `tool_operate.c` and the `DEBUGASSERT(!glob->literal)`. If that invariant is ever violated (e.g., a future caller forgets the guard, or DEBUGASSERT is compiled out in release and the code path is reached in some corner case), `glob->buf` could accumulate an allocation that is never freed.\n- **Suggestion:** Decouple the `curlx_dyn_free(&glob->buf)` call from the `if(glob->pattern)` check (call it unconditionally in `glob_cleanup()`), or explicitly free `glob->buf` in the `literal` branch as well, to keep the buffer's lifetime cleanup independent of whether pattern parsing occurred.\n\n- **Severity:** low\n- **File:** src/tool_urlglob.c / src/tool_urlglob.h\n- **Line:** `bool glob_inuse(struct URLGlob *glob)` vs `bool glob_is_literal(const struct URLGlob *glob)` (h file lines 84-85)\n- **Issue:** `glob_is_literal` takes a `const struct URLGlob *` while the pre-existing, closely related `glob_inuse` takes a non-const pointer. Minor API inconsistency introduced by this change; not a functional bug but reduces const-correctness clarity for callers who might expect symmetric signatures.\n- **Suggestion:** Optionally align `glob_inuse`'s parameter to `const struct URLGlob *` as well (its body is read-only), for consistency.\n\n- **Severity:** low\n- **File:** src/tool_urlglob.c\n- **Line:** `DEBUGASSERT(!glob->literal);` in `glob_next_url()` (~line 638)\n- **Issue:** The only safeguard against calling `glob_next_url()` on a literal glob is a debug-only assertion; both call sites in `tool_operate.c` correctly guard with `!glob_is_literal(...)` today, so this is not currently reachable. However, in release builds (`NDEBUG`), a future incorrect call site would silently fall through the `pnum == 0` path and return `CURLE_OK` with `*globbed == NULL` rather than failing loudly, which could surface as a confusing \"empty upload/URL\" bug instead of an obvious assertion failure.\n- **Suggestion:** Consider an explicit runtime check (e.g., return `CURLE_FAILED_INIT` when `glob->literal` is true) in addition to the DEBUGASSERT, so misuse fails safely in release builds too.\n\nNo correctness, memory-safety, or security issues were found in the core logic change: the `literal` fast-path in `glob_url()`, the updated `glob_inuse()`, and the new `!glob_is_literal()` guards in `tool_operate.c` (`setup_input_file`, `select_next_url`) were traced through the multi-URL/multi-upload-file iteration logic (`upidx`/`urlidx`/`upnum`/`urlnum` bookkeeping in `create_single`) and correctly preserve prior behavior, including for `#<name>`/`#N` output-glob substitution in `glob_match_url`, which already tolerated `pnum == 0`.\n\nLLM_USAGE: prompt=5400 completion=2600\n\n",
+        "prompt_sha256": "420389b53e22c285339ad4de4d45cd98a423fef8932c4e6f17c29da8445594b9",
+        "prompt_chars": 4906,
+        "prompt_tokens": 786800,
+        "completion_tokens": 18100,
+        "ai_credits": 41.74,
+        "usd": 0.41740000000000005,
+        "latency_ms": 438217,
+        "findings": {
+          "total": 3,
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 3
+        }
+      },
+      "economics": {
+        "baseline_usd": 0.10300000000000001,
+        "routed_usd": 0.41740000000000005,
+        "saved_usd": -0.3144,
+        "saved_pct": -305.24271844660194,
+        "end_to_end_A_ms": 85080,
+        "end_to_end_B_ms": 438217
+      }
+    }
+  ]
+}

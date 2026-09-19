@@ -1,0 +1,30 @@
+{
+  "name": "prune-review-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP server exposing prune-review as tools for Copilot CLI, Claude Desktop, Cursor, etc.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/server.js",
+  "bin": {
+    "prune-mcp": "dist/server.js"
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.mjs",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@octokit/rest": "^21.0.0",
+    "prune-review": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

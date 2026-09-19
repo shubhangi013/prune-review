@@ -1,0 +1,7 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+# Pick ONE of these based on your hardware:
+#   onnxruntime-genai              # CPU
+#   onnxruntime-genai-directml     # Windows GPU
+#   onnxruntime-genai-cuda         # NVIDIA CUDA

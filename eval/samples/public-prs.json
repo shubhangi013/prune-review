@@ -1,0 +1,13 @@
+[
+  { "repo": "microsoft/vscode", "pr": 336383, "title": "Fix built-in extensions manifest cache never being hit", "merged_at": "2026-09-18T12:11:19Z", "merge_sha_short": "47aa3e9" },
+  { "repo": "facebook/react", "pr": 37645, "title": "[compiler] Bail on use of arguments object", "merged_at": "2026-09-18T09:10:51Z", "merge_sha_short": "59aff3e" },
+  { "repo": "vercel/next.js", "pr": 97946, "title": "fix: suppress missing package manager errors in next info", "merged_at": "2026-09-04T01:12:16Z", "merge_sha_short": "090f1b7" },
+  { "repo": "eslint/eslint", "pr": 21311, "title": "fix: ignore __proto__ properties in prefer-object-spread", "merged_at": "2026-09-16T08:49:05Z", "merge_sha_short": "22b09f5" },
+  { "repo": "pytest-dev/pytest", "pr": 15053, "title": "fixtures: fix lineno off-by-one", "merged_at": "2026-09-17T12:33:37Z", "merge_sha_short": "56a92c1" },
+  { "repo": "prometheus/prometheus", "pr": 19731, "title": "API: Clamp the experimental search endpoints to 1000", "merged_at": "2026-09-18T13:31:43Z", "merge_sha_short": "296080c" },
+  { "repo": "spring-projects/spring-framework", "pr": 37295, "title": "Use isEmpty to check if a collection is empty", "merged_at": "2026-09-18T12:15:05Z", "merge_sha_short": "c1ba31c" },
+  { "repo": "tokio-rs/tokio", "pr": 8454, "title": "io: reject zero copy buffer sizes", "merged_at": "2026-09-13T12:18:34Z", "merge_sha_short": "7f6bb9a" },
+  { "repo": "rust-lang/rust", "pr": 162552, "title": "RISC-V: Add Zmmul target feature", "merged_at": "2026-09-18T04:48:04Z", "merge_sha_short": "370012b" },
+  { "repo": "kubernetes/kubernetes", "pr": 135486, "title": "Fix default-preemption error when using filter extenders", "merged_at": "2026-09-17T14:07:23Z", "merge_sha_short": "ae59659" },
+  { "repo": "curl/curl", "pr": 22947, "title": "glob: reduce allocations for URLs without globbing", "merged_at": "2026-09-15T08:29:46Z", "merge_sha_short": "91e0ed5" }
+]

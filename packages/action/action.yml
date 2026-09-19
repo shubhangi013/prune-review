@@ -1,0 +1,56 @@
+name: "prune-review"
+description: "Route PR hunks through batched Jev risk triage before invoking a cloud reviewer."
+author: "prune-review contributors"
+branding:
+  icon: "scissors"
+  color: "purple"
+
+inputs:
+  triage-backend:
+    description: "Decision backend: 'jev' (System One, recommended) or 'onnx' (local phi-3.5-mini fallback)."
+    required: false
+    default: "jev"
+  llm-backend:
+    description: "LLM reviewer backend: 'openai' (default) or 'copilot-cli'."
+    required: false
+    default: "openai"
+  jev-api-key:
+    description: "TypeSafe AI Jev API key. Required when triage-backend=jev."
+    required: false
+  openai-api-key:
+    description: "OpenAI (or OpenAI-compatible) API key. Required when llm-backend=openai."
+    required: false
+  openai-base-url:
+    description: "Override OPENAI_BASE_URL to point at Anthropic-via-LiteLLM, Groq, Ollama, etc."
+    required: false
+  openai-model:
+    description: "Reviewer model name."
+    required: false
+    default: "gpt-4o-mini"
+  min-hunks:
+    description: "Below this hunk count, short-circuit to LLM-only (decision overhead dominates on tiny PRs)."
+    required: false
+    default: "10"
+  extra-safety-patterns:
+    description: "Newline-separated extra regex patterns that force keep on a hunk. Merged with defaults."
+    required: false
+  report-baseline:
+    description: "If 'true', ALSO run the LLM-only path and post a comment with credit + time savings. Doubles CI cost."
+    required: false
+    default: "false"
+  github-token:
+    description: "GITHUB_TOKEN for PR comment posting and diff fetch."
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  review-markdown:
+    description: "Path to the review markdown file."
+  summary-json:
+    description: "Path to the JSON summary with token/credit counts."
+  ai-credits-saved:
+    description: "AI credits saved vs LLM-only baseline (only when report-baseline=true)."
+
+runs:
+  using: "node20"
+  main: "dist/index.js"

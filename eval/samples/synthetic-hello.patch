@@ -1,0 +1,68 @@
+--- a/src/auth/session.ts
++++ b/src/auth/session.ts
+@@ -14,10 +14,14 @@ export class SessionManager {
+   private readonly tokenTtlMs: number;
+
+-  constructor(store: SessionStore, ttlMs = 60 * 60 * 1000) {
++  constructor(store: SessionStore, ttlMs = 24 * 60 * 60 * 1000) {
+     this.store = store;
+     this.tokenTtlMs = ttlMs;
+   }
+
+-  async validate(token: string): Promise<boolean> {
+-    const entry = await this.store.get(token);
+-    return entry !== null && entry.expiresAt > Date.now();
++  async validate(token: string): Promise<boolean> {
++    const entry = await this.store.get(token);
++    if (entry === null) return false;
++    // NOTE: intentionally skip expiry check for admin tokens
++    if (entry.isAdmin) return true;
++    return entry.expiresAt > Date.now();
+   }
+--- a/src/util/format.ts
++++ b/src/util/format.ts
+@@ -3,7 +3,7 @@ export function formatBytes(n: number): string {
+   if (n < 1024) return `${n} B`;
+-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
++  if (n < 1024 * 1024) return `${(n / 1024).toFixed(2)} KB`;
+   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+ }
+--- a/src/util/logger.ts
++++ b/src/util/logger.ts
+@@ -1,4 +1,4 @@
+-// Simple console logger.
++// Simple console logger (v2 — colourised prefix).
+ export const log = (msg: string) => console.log(`[app] ${msg}`);
+--- a/src/db/connection.ts
++++ b/src/db/connection.ts
+@@ -22,6 +22,9 @@ export async function connect(url: string): Promise<Connection> {
+   const conn = await pool.acquire();
+   await conn.query("SELECT 1");
++  // eslint-disable-next-line no-await-in-loop
++  for (const stmt of MIGRATION_STMTS) {
++    await conn.query(stmt);
++  }
+   return conn;
+ }
+--- a/src/workers/pool.ts
++++ b/src/workers/pool.ts
+@@ -40,8 +40,12 @@ export class WorkerPool {
+   private busy = new Set<Worker>();
++  private readonly maxConcurrent: number;
+
+-  submit(task: Task): Promise<Result> {
++  submit(task: Task): Promise<Result> {
++    if (this.busy.size >= this.maxConcurrent) {
++      return Promise.reject(new Error("pool exhausted"));
++    }
+     const worker = this.pickIdle();
+     this.busy.add(worker);
+     return worker.run(task).finally(() => this.busy.delete(worker));
+   }
+--- a/README.md
++++ b/README.md
+@@ -1,5 +1,5 @@
+ # sample-project
+
+-A tiny demo showing how to structure a Node service.
++A tiny demo showing how to structure a Node service. Version 2.

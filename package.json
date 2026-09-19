@@ -1,0 +1,22 @@
+{
+  "name": "prune-review-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Cost-aware PR review using batched Jev triage before a cloud reviewer.",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "samples:fetch": "node eval/fetch-samples.mjs",
+    "benchmark:mcp": "node eval/run-mcp-ab.mjs",
+    "clean": "pnpm -r clean"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.0.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
